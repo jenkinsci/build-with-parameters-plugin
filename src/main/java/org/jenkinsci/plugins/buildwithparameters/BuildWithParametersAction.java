@@ -52,6 +52,7 @@ public class BuildWithParametersAction<T extends Job<?, ?> & ParameterizedJob> i
 
         for (ParameterDefinition parameterDefinition : getParameterDefinitions()) {
             BuildParameter buildParameter = new BuildParameter(parameterDefinition.getName(), parameterDefinition.getDescription());
+
             if (parameterDefinition.getClass().isAssignableFrom(PasswordParameterDefinition.class)) {
                 buildParameter.setType(BuildParameterType.PASSWORD);
             } else if (parameterDefinition.getClass().isAssignableFrom(BooleanParameterDefinition.class)) {
@@ -64,8 +65,11 @@ public class BuildWithParametersAction<T extends Job<?, ?> & ParameterizedJob> i
             } else if (parameterDefinition.getClass().isAssignableFrom(TextParameterDefinition.class)) {
                 buildParameter.setType(BuildParameterType.TEXT);
             } else {
-                // default to string
-                buildParameter.setType(BuildParameterType.STRING);
+                if (parameterDefinition.getClass().toString().equals("class com.michelin.cio.hudson.plugins.passwordparam.PasswordParameterDefinition")) { // Integration with mask-passwords-plugin
+                    buildParameter.setType(BuildParameterType.PASSWORD);
+                } else { // default to string
+                    buildParameter.setType(BuildParameterType.STRING);
+                }
             }
 
             try {
