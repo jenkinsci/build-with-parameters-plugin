@@ -5,6 +5,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import hudson.model.PasswordParameterValue;
 
+import org.jenkinsci.plugins.buildwithparameters.definitions.CredentialParameterValue;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
@@ -17,6 +18,13 @@ public class BuildParameterTest {
         BuildParameter bp = new BuildParameter("n","v");
         bp.setValue(new PasswordParameterValue("asdf", "fdfd"));
         assertEquals(BuildParameter.JOB_DEFAULT_PASSWORD_PLACEHOLDER, bp.getValue());
+    }
+
+    @Test
+    public void setValue_credentialParam() {
+        BuildParameter bp = new BuildParameter("n","v");
+        bp.setValue(new CredentialParameterValue("cred", "credValue"));
+        assertEquals(BuildParameter.JOB_DEFAULT_CREDENTIAL_PLACEHOLDER, bp.getValue());
     }
     
     @Test

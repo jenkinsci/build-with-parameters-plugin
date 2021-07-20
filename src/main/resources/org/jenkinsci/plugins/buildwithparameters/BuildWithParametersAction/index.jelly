@@ -30,6 +30,11 @@
                                 <j:when test="${parameter.type == 'TEXT'}">
                                     <f:textarea name="${parameter.name}" value="${parameter.value}"/>
                                 </j:when>
+
+                                <j:when test="${parameter.type == 'CREDENTIAL'}">
+                                        <f:credential name="${parameter.name}" value="${parameter.value}"/>
+                                </j:when>
+
                                 <j:otherwise>
                                     <f:textbox name="${parameter.name}" value="${parameter.value}"/>
                                 </j:otherwise>

@@ -5,11 +5,14 @@ import hudson.model.ParameterValue;
 import hudson.model.PasswordParameterValue;
 import hudson.model.StringParameterValue;
 import hudson.model.TextParameterValue;
+import org.jenkinsci.plugins.buildwithparameters.definitions.CredentialParameterValue;
+
 import java.util.List;
 
 public class BuildParameter {
 
     static final String JOB_DEFAULT_PASSWORD_PLACEHOLDER = "job_default_password";
+    static final String JOB_DEFAULT_CREDENTIAL_PLACEHOLDER = "credValue";
     private BuildParameterType type;
     private final String name;
     private final String description;
@@ -41,14 +44,29 @@ public class BuildParameter {
     }
 
     public void setValue(ParameterValue parameterValue) {
+
         if (parameterValue instanceof StringParameterValue) {
             this.value = ((StringParameterValue) parameterValue).value;
-        } else if (parameterValue instanceof TextParameterValue) {
+        }
+
+        else if (parameterValue instanceof TextParameterValue) {
             this.value = ((TextParameterValue) parameterValue).value;
-        } else if (parameterValue instanceof BooleanParameterValue) {
+        }
+
+        else if (parameterValue instanceof BooleanParameterValue) {
             this.value = String.valueOf(((BooleanParameterValue) parameterValue).value);
-        } else if (parameterValue instanceof PasswordParameterValue) {
+        }
+
+        else if (parameterValue instanceof PasswordParameterValue) {
             this.value = JOB_DEFAULT_PASSWORD_PLACEHOLDER;
+        }
+
+        else if (parameterValue instanceof CredentialParameterValue) {
+            this.value = ((CredentialParameterValue) parameterValue).value;
+        }
+
+        else {
+            this.value = String.valueOf(parameterValue.getValue());
         }
     }
 
