@@ -11,7 +11,7 @@ parameters to trigger ahead of time, and execute it at some future date
 (e.g. a deployment plan).
 
 An example triggering of a job with the plugin:  
-![](docs/images/example_screenshot.png)
+![](example_screenshot.png)
 
 ## Changelog
 ### 1.5.1 - Mar 26, 2021
