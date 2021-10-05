@@ -14,7 +14,7 @@
         triggering the job.
     </description>
     <packaging>hpi</packaging>
-    <url>https://wiki.jenkins-ci.org/display/JENKINS/Build+With+Parameters+Plugin</url>
+    <url>https://github.com/jenkinsci/build-with-parameters-plugin/</url>
     <licenses>
         <license>
             <name>MIT license</name>
