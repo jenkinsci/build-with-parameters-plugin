@@ -14,6 +14,14 @@ An example triggering of a job with the plugin:
 ![](docs/images/example_screenshot.png)
 
 ## Changelog
+### 1.5.1 - Mar 26, 2021
+
+- Fix XXS vulnerability as reported in [security advisory](https://www.jenkins.io/security/advisory/2021-03-30/#SECURITY-2231)
+- Fix CRSF vulnerability as reported in [security advisory](https://www.jenkins.io/security/advisory/2021-03-30/#SECURITY-2257)
+
+### 1.5 - Oct 4, 2020
+
+- Require Jenkins 2.60.3 or newer
 
 ### 1.4
 
