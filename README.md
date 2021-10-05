@@ -3,12 +3,9 @@ jenkins-build-with-parameters-plugin
 
 Allows the user to provide parameters for a build in the url, prompting for confirmation before triggering the job.
 
-The plugin exposes `$JENKINS/job/$JOB/parambuild` url to trigger the
-build with parameter. Unlike `$JENKINS/job/$JOB/buildWithParameters`,
-a human must confirm that the parameters are correct before the build is
-triggered. This is useful if you want to create a list of jobs with
-parameters to trigger ahead of time, and execute it at some future date
-(e.g. a deployment plan).
+The plugin exposes `$JENKINS/job/$JOB/parambuild` url to trigger the build with parameter.
+Unlike `$JENKINS/job/$JOB/buildWithParameters`, a human must confirm that the parameters are correct before the build is triggered.
+This is useful if you want to create a list of jobs with parameters to trigger ahead of time, and execute it at some future date (e.g. a deployment plan).
 
 An example triggering of a job with the plugin:  
 ![](example_screenshot.png)
