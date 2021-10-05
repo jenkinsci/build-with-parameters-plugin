@@ -11,6 +11,7 @@ An example triggering of a job with the plugin:
 ![](example_screenshot.png)
 
 ## Changelog
+
 ### 1.5.1 - Mar 26, 2021
 
 - Fix XXS vulnerability as reported in [security advisory](https://www.jenkins.io/security/advisory/2021-03-30/#SECURITY-2231)
@@ -20,7 +21,7 @@ An example triggering of a job with the plugin:
 
 - Require Jenkins 2.60.3 or newer
 
-### 1.4
+### 1.4 - Jun 2, 2017
 
 -   Fixed 404 error for not logged user
     ([JENKINS-25534](https://issues.jenkins-ci.org/browse/JENKINS-25534))
@@ -28,7 +29,7 @@ An example triggering of a job with the plugin:
 -   Support for pipelines
     ([JENKINS-35378](https://issues.jenkins-ci.org/browse/JENKINS-35378))
 
-### 1.3
+### 1.3 - Nov 10, 2014
 
 -   Hide job action from UI to avoid confusion
     ([JENKINS-25413](https://issues.jenkins-ci.org/browse/JENKINS-25413))
