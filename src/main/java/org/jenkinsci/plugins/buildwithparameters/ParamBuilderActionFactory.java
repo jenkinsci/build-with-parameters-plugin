@@ -1,5 +1,6 @@
 package org.jenkinsci.plugins.buildwithparameters;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.model.Action;
 import hudson.model.Job;
@@ -8,7 +9,6 @@ import jenkins.model.TransientActionFactory;
 
 import java.util.Collection;
 import java.util.Collections;
-import javax.annotation.Nonnull;
 
 @Extension
 public class ParamBuilderActionFactory extends TransientActionFactory<Job> {
@@ -18,10 +18,10 @@ public class ParamBuilderActionFactory extends TransientActionFactory<Job> {
         return Job.class;
     }
 
-    @Nonnull
+    @NonNull
     @Override
     @SuppressWarnings("unchecked")
-    public Collection<? extends Action> createFor(@Nonnull Job target) {
+    public Collection<? extends Action> createFor(@NonNull Job target) {
         if (target instanceof ParameterizedJob) {
             return Collections.singletonList(new BuildWithParametersAction(target));
         } else {
