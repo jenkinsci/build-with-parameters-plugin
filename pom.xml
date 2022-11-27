@@ -8,7 +8,7 @@
     </parent>
 
     <artifactId>build-with-parameters</artifactId>
-    <version>1.8-SNAPSHOT</version>
+    <version>${changelist}</version>
     <name>Build With Parameters</name>
     <description>Allows the user to provide parameters for a build in the url, prompting for confirmation before
         triggering the job.
@@ -23,6 +23,8 @@
     </licenses>
 
     <properties>
+        <changelist>999999-SNAPSHOT</changelist>
+        <gitHubRepo>jenkinsci/build-with-parameters-plugin</gitHubRepo>
         <revision>1.7</revision>
         <changelist>-SNAPSHOT</changelist>
         <jenkins.version>2.204</jenkins.version>
@@ -43,10 +45,9 @@
     </developers>
 
     <scm>
-        <connection>scm:git:ssh://github.com/jenkinsci/build-with-parameters-plugin.git</connection>
-        <developerConnection>scm:git:ssh://git@github.com/jenkinsci/build-with-parameters-plugin.git
-        </developerConnection>
-        <url>https://github.com/jenkinsci/build-with-parameters-plugin</url>
+        <connection>scm:git:ssh://github.com/${gitHubRepo}.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com/${gitHubRepo}.git</developerConnection>
+        <url>https://github.com/${gitHubRepo}</url>
         <tag>${scmTag}</tag>
     </scm>
 
