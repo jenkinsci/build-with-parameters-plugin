@@ -41,10 +41,10 @@ public class BuildParameter {
     }
 
     public void setValue(ParameterValue parameterValue) {
-        if (parameterValue instanceof StringParameterValue) {
-            this.value = ((StringParameterValue) parameterValue).getValue();
-        } else if (parameterValue instanceof TextParameterValue) {
+        if (parameterValue instanceof TextParameterValue) {
             this.value = ((TextParameterValue) parameterValue).getValue();
+        } else if (parameterValue instanceof StringParameterValue) {
+            this.value = ((StringParameterValue) parameterValue).getValue();
         } else if (parameterValue instanceof BooleanParameterValue) {
             this.value = String.valueOf(((BooleanParameterValue) parameterValue).getValue());
         } else if (parameterValue instanceof PasswordParameterValue) {
