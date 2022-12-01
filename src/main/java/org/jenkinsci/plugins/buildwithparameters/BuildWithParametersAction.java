@@ -48,7 +48,7 @@ public class BuildWithParametersAction<T extends Job<?, ?> & ParameterizedJob> i
     }
 
     public List<BuildParameter> getAvailableParameters() {
-        List<BuildParameter> buildParameters = new ArrayList<BuildParameter>();
+        List<BuildParameter> buildParameters = new ArrayList<>();
 
         for (ParameterDefinition parameterDefinition : getParameterDefinitions()) {
             BuildParameter buildParameter = new BuildParameter(parameterDefinition.getName(), parameterDefinition.getDescription());
@@ -106,7 +106,7 @@ public class BuildWithParametersAction<T extends Job<?, ?> & ParameterizedJob> i
     public void doConfigSubmit(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
         project.checkPermission(BuildableItem.BUILD);
 
-        List<ParameterValue> values = new ArrayList<ParameterValue>();
+        List<ParameterValue> values = new ArrayList<>();
 
         JSONObject formData = req.getSubmittedForm();
         if (!formData.isEmpty()) {
@@ -127,20 +127,19 @@ public class BuildWithParametersAction<T extends Job<?, ?> & ParameterizedJob> i
             }
         }
 
-        Jenkins.getInstance().getQueue().schedule(project, 0, new ParametersAction(values), new CauseAction(new Cause.UserIdCause()));
+        Jenkins.get().getQueue().schedule(project, 0, new ParametersAction(values), new CauseAction(new Cause.UserIdCause()));
         rsp.sendRedirect("../");
     }
 
     ParameterValue applyDefaultPassword(PasswordParameterDefinition parameterDefinition,
             PasswordParameterValue parameterValue) {
-        String jobPassword = getPasswordValue((PasswordParameterValue) parameterValue);
+        String jobPassword = getPasswordValue(parameterValue);
         if (!BuildParameter.isDefaultPasswordPlaceholder(jobPassword)) {
             return parameterValue;
         }
         PasswordParameterValue password = (PasswordParameterValue) parameterDefinition.getDefaultParameterValue();
         String jobDefaultPassword = password != null ? getPasswordValue(password) : "";
-        ParameterValue passwordParameterValue = new PasswordParameterValue(parameterValue.getName(), jobDefaultPassword);
-        return passwordParameterValue;
+        return new PasswordParameterValue(parameterValue.getName(), jobDefaultPassword);
     }
 
     static String getPasswordValue(PasswordParameterValue parameterValue) {
@@ -154,11 +153,11 @@ public class BuildWithParametersAction<T extends Job<?, ?> & ParameterizedJob> i
     //              //
     //////////////////
     private List<ParameterDefinition> getParameterDefinitions() {
-        ParametersDefinitionProperty property = (ParametersDefinitionProperty) project.getProperty(ParametersDefinitionProperty.class);
+        ParametersDefinitionProperty property = project.getProperty(ParametersDefinitionProperty.class);
         if (property != null && property.getParameterDefinitions() != null) {
             return property.getParameterDefinitions();
         }
-        return new ArrayList<ParameterDefinition>();
+        return new ArrayList<>();
     }
 
 }

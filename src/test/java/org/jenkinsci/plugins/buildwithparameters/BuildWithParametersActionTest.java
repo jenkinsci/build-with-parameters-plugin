@@ -1,7 +1,7 @@
 package org.jenkinsci.plugins.buildwithparameters;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertSame;
 import hudson.model.ParameterValue;
 import hudson.model.FreeStyleProject;
 import hudson.model.ParameterDefinition;
@@ -33,7 +33,7 @@ public class BuildWithParametersActionTest {
         BuildWithParametersAction bwpa = testableProject(pwParamDef);
 
         BuildParameter pwParameter = (BuildParameter) bwpa.getAvailableParameters().get(0);
-        assertTrue(pwParameter.getType()==BuildParameterType.PASSWORD);
+        assertSame(pwParameter.getType(), BuildParameterType.PASSWORD);
     }
 
     private BuildWithParametersAction testableProject(
@@ -41,14 +41,13 @@ public class BuildWithParametersActionTest {
         FreeStyleProject project = j.createFreeStyleProject();
         ParametersDefinitionProperty paramsDef = new ParametersDefinitionProperty(pwParamDef);
         project.addProperty(paramsDef);
-        BuildWithParametersAction bwpa = new BuildWithParametersAction(project) {
+        return new BuildWithParametersAction(project) {
             @Override
             ParameterValue getParameterDefinitionValue(
                     ParameterDefinition parameterDefinition) {
                 return null;
             }
         };
-        return bwpa;
     }
 
     @Test
