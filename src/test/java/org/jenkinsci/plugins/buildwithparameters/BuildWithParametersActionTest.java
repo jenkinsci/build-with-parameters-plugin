@@ -19,10 +19,10 @@ import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.JenkinsRule.WebClient;
 
-import com.gargoylesoftware.htmlunit.html.DomElement;
-import com.gargoylesoftware.htmlunit.html.HtmlForm;
-import com.gargoylesoftware.htmlunit.html.HtmlFormUtil;
-import com.gargoylesoftware.htmlunit.html.HtmlPage;
+import org.htmlunit.html.DomElement;
+import org.htmlunit.html.HtmlForm;
+import org.htmlunit.html.HtmlFormUtil;
+import org.htmlunit.html.HtmlPage;
 
 public class BuildWithParametersActionTest {
     @Rule public JenkinsRule j = new JenkinsRule();
@@ -87,7 +87,7 @@ public class BuildWithParametersActionTest {
         WebClient wc = j.createWebClient();
         HtmlPage page = wc.getPage(project, "parambuild");
         HtmlForm form = page.getFormByName("config");
-        form.getInputByName("param").setValueAttribute("newValue");
+        form.getInputByName("param").setValue("newValue");
 
         // This does not submit the form for some reason.
         HtmlFormUtil.getButtonByCaption(form, "Build").click();
