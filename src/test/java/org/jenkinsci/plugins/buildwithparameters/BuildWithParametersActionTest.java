@@ -3,6 +3,10 @@ package org.jenkinsci.plugins.buildwithparameters;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
 import hudson.model.ParameterValue;
+import hudson.model.BooleanParameterDefinition;
+import hudson.model.BooleanParameterValue;
+import hudson.model.FileParameterDefinition;
+import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
 import hudson.model.ParameterDefinition;
 import hudson.model.ParametersAction;
@@ -80,14 +84,18 @@ public class BuildWithParametersActionTest {
 
     @Test
     public void provideParametersViaUi() throws Exception {
+        StringParameterDefinition strParam = new StringParameterDefinition("str_param", "default", "desc");
+        BooleanParameterDefinition boolParam = new BooleanParameterDefinition("bool_param", false, "desc");
+        FileParameterDefinition fileParam = new FileParameterDefinition("file_param");
         FreeStyleProject project = j.createFreeStyleProject();
-        StringParameterDefinition params = new StringParameterDefinition("param", "default");
-        project.addProperty(new ParametersDefinitionProperty(params));
+        project.addProperty(new ParametersDefinitionProperty(strParam, boolParam, fileParam));
 
         WebClient wc = j.createWebClient();
-        HtmlPage page = wc.getPage(project, "parambuild");
+        HtmlPage page = wc.getPage(project, "parambuild?str_param=newValue&bool_param=true");
         HtmlForm form = page.getFormByName("config");
-        form.getInputByName("param").setValue("newValue");
+        
+        form.getInputByName(strParam.getName()).setValue("evenNewerValue");
+        // TODO: set the bool and file params? keep some, to ensure the query param comes through? handle other param types?
 
         // This does not submit the form for some reason.
         HtmlFormUtil.getButtonByCaption(form, "Build").click();
@@ -97,12 +105,22 @@ public class BuildWithParametersActionTest {
         form.appendChild(fakeSubmit);
         fakeSubmit.click();
 
+        
+        FreeStyleBuild lastBuild = null;
         do {
             Thread.sleep(100);
-        } while (project.getLastBuild() == null);
+            lastBuild = project.getLastBuild();
+        } while (lastBuild == null);
 
-        final ParametersAction parameterAction = project.getLastBuild().getAction(ParametersAction.class);
-        final String actualValue = ((StringParameterValue) parameterAction.getParameter("param")).value;
-        assertEquals(actualValue, "newValue");
+        // ensure that it actually succeeded
+        String buildStatusMessage = lastBuild.getBuildStatusSummary().message;
+        assertEquals("stable", buildStatusMessage);
+
+        // ensure that the correct paramaters were built
+        ParametersAction parameterAction = lastBuild.getAction(ParametersAction.class);
+        String actualStrValue = ((StringParameterValue) parameterAction.getParameter("str_param")).value;
+        assertEquals(actualStrValue, "evenNewerValue");
+        boolean actualBoolValue = ((BooleanParameterValue) parameterAction.getParameter("bool_param")).value;
+        assertEquals(actualBoolValue, true);
     }
 }

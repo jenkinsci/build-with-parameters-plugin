@@ -30,6 +30,9 @@
                                 <j:when test="${parameter.type == 'TEXT'}">
                                     <f:textarea name="${parameter.name}" value="${parameter.value}"/>
                                 </j:when>
+                                <j:when test="${parameter.type == 'FILE'}">
+                                    <f:file name="${parameter.name}" jsonAware="true" />
+                                </j:when>
                                 <j:otherwise>
                                     <f:textbox name="${parameter.name}" value="${parameter.value}"/>
                                 </j:otherwise>
