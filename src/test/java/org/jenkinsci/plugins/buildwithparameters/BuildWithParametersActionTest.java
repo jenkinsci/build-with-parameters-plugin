@@ -116,7 +116,7 @@ public class BuildWithParametersActionTest {
         String buildStatusMessage = lastBuild.getBuildStatusSummary().message;
         assertEquals("stable", buildStatusMessage);
 
-        // ensure that the correct paramaters were built
+        // ensure that the correct parameters were built
         ParametersAction parameterAction = lastBuild.getAction(ParametersAction.class);
         String actualStrValue = ((StringParameterValue) parameterAction.getParameter("str_param")).value;
         assertEquals(actualStrValue, "evenNewerValue");

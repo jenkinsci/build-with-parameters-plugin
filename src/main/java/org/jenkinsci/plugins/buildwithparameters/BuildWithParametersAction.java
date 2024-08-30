@@ -2,7 +2,6 @@ package org.jenkinsci.plugins.buildwithparameters;
 
 import hudson.model.Action;
 import hudson.model.BooleanParameterDefinition;
-import hudson.model.BooleanParameterValue;
 import hudson.model.BuildableItem;
 import hudson.model.Cause;
 import hudson.model.CauseAction;
@@ -124,6 +123,7 @@ public class BuildWithParametersAction<T extends Job<?, ?> & ParameterizedJob> i
         JSONObject formData = req.getSubmittedForm();
         if (!formData.isEmpty()) {
             // LOG.info(formData.toString());
+
             for (ParameterDefinition parameterDefinition : getParameterDefinitions()) {
                 ParameterValue parameterValue = parameterDefinition.createValue(req);
 
@@ -134,15 +134,17 @@ public class BuildWithParametersAction<T extends Job<?, ?> & ParameterizedJob> i
                     parameterValue = applyDefaultPassword((PasswordParameterDefinition) parameterDefinition,
                                                             (PasswordParameterValue) parameterValue);
                 } else if (parameterDefinition.getClass().isAssignableFrom(FileParameterDefinition.class)) {
-                    // in both ideas for the jelly template, there's nothing for the parameter name: e.g. "Jenkins-Crumb,x,Jenkins-Crumb,Submit,json"
-                    // so we are doing some hacky stuff to map the parameter name e.g. y to the file name e.g. file0
-                    // it really feels like there should be a way of making getParameter("y") return "file0"?
+                    // so we are doing some hacky stuff to map the parameter name e.g. fileparam.txt to the file name e.g. file0
+                    // it really feels like there should be a way of making getParameter("fileparam.txt") return "file0"?
+                    // anyway, with this latest jelly template, on a param build, formData is e.g. {"parameter":[{"strparam":""},{"name":"fileparam.txt","":"file0"},{"name":"fileparam2.txt","":"file1"}]...
+                    // in a regular build with parameters, this is e.g. {"parameter":[{"name":"strparam","value":""},{"name":"fileparam.txt","file":"file0"},{"name":"fileparam2.txt","file":"file1"}]...
+                    // which is still a bit different for ALL parameter types
                     JSONArray jsonArray = formData.getJSONArray("parameter");
                     String parameterName = parameterDefinition.getName();
                     for (Object jsonArrayItem : jsonArray) {
                         JSONObject jsonObj = (JSONObject)jsonArrayItem;
-                        if (jsonObj.has(parameterName)) {
-                            String fileName = jsonObj.getString(parameterName);
+                        if (jsonObj.has("name") && jsonObj.getString("name").equals(parameterName)) {
+                            String fileName = jsonObj.getString("");
                             FileItem fileItem = req.getFileItem(fileName);
                             FileParameterValue fileParameterValue = new FileParameterValue(parameterName, fileItem);
                             fileParameterValue.setDescription(parameterDefinition.getDescription());
