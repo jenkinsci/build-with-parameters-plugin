@@ -93,7 +93,7 @@ public class BuildWithParametersActionTest {
         WebClient wc = j.createWebClient();
         HtmlPage page = wc.getPage(project, "parambuild?str_param=newValue&bool_param=true");
         HtmlForm form = page.getFormByName("config");
-        
+
         form.getInputByName(strParam.getName()).setValue("evenNewerValue");
         // TODO: set the bool and file params? keep some, to ensure the query param comes through? handle other param types?
 
@@ -105,7 +105,6 @@ public class BuildWithParametersActionTest {
         form.appendChild(fakeSubmit);
         fakeSubmit.click();
 
-        
         FreeStyleBuild lastBuild = null;
         do {
             Thread.sleep(100);
