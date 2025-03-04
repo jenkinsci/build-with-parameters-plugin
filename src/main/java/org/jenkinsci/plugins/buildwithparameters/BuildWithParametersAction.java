@@ -20,13 +20,13 @@ import hudson.util.Secret;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import javax.servlet.ServletException;
+import jakarta.servlet.ServletException;
 import jenkins.model.Jenkins;
 import jenkins.model.ParameterizedJobMixIn.ParameterizedJob;
 import net.sf.json.JSONObject;
 import org.kohsuke.stapler.Stapler;
-import org.kohsuke.stapler.StaplerRequest;
-import org.kohsuke.stapler.StaplerResponse;
+import org.kohsuke.stapler.StaplerRequest2;
+import org.kohsuke.stapler.StaplerResponse2;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 
 public class BuildWithParametersAction<T extends Job<?, ?> & ParameterizedJob> implements Action {
@@ -81,7 +81,7 @@ public class BuildWithParametersAction<T extends Job<?, ?> & ParameterizedJob> i
     }
 
     ParameterValue getParameterDefinitionValue(ParameterDefinition parameterDefinition) {
-        return parameterDefinition.createValue(Stapler.getCurrentRequest());
+        return parameterDefinition.createValue(Stapler.getCurrentRequest2());
     }
 
     public String getIconFileName() {
@@ -103,7 +103,7 @@ public class BuildWithParametersAction<T extends Job<?, ?> & ParameterizedJob> i
     //              //
     //////////////////
     @RequirePOST
-    public void doConfigSubmit(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
+    public void doConfigSubmit(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException {
         project.checkPermission(BuildableItem.BUILD);
 
         List<ParameterValue> values = new ArrayList<>();

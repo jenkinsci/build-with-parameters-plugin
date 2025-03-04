@@ -3,7 +3,7 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>4.86</version>
+        <version>5.8</version>
         <relativePath />
     </parent>
 
@@ -26,7 +26,9 @@
         <changelist>999999-SNAPSHOT</changelist>
         <gitHubRepo>jenkinsci/build-with-parameters-plugin</gitHubRepo>
         <revision>1.7</revision>
-        <jenkins.version>2.440.3</jenkins.version>
+        <!-- https://www.jenkins.io/doc/developer/plugin-development/choosing-jenkins-baseline/ -->
+        <jenkins.baseline>2.479</jenkins.baseline>
+        <jenkins.version>${jenkins.baseline}.1</jenkins.version>
     </properties>
 
     <developers>
