@@ -79,9 +79,11 @@ public class BuildWithParametersAction<T extends Job<?, ?> & ParameterizedJob> i
             }
 
             try {
-                // this probably won't work for files, but that's okay for our use case
-                ParameterValue parameterValue = getParameterDefinitionValue(parameterDefinition);
-                buildParameter.setValue(parameterValue);
+                // Don't call getParameterDefinitionValue for FILE type, it will cause NPE if no file is uploaded
+                if (buildParameter.getType() != BuildParameterType.FILE) {
+                    ParameterValue parameterValue = getParameterDefinitionValue(parameterDefinition);
+                    buildParameter.setValue(parameterValue);
+                }
             } catch (IllegalArgumentException ignored) {
                 // If a value was provided that does not match available options, leave the value blank.
             }
@@ -139,7 +141,16 @@ public class BuildWithParametersAction<T extends Job<?, ?> & ParameterizedJob> i
                     // anyway, with this latest jelly template, on a param build, formData is e.g. {"parameter":[{"strparam":""},{"name":"fileparam.txt","":"file0"},{"name":"fileparam2.txt","":"file1"}]...
                     // in a regular build with parameters, this is e.g. {"parameter":[{"name":"strparam","value":""},{"name":"fileparam.txt","file":"file0"},{"name":"fileparam2.txt","file":"file1"}]...
                     // which is still a bit different for ALL parameter types
-                    JSONArray jsonArray = formData.getJSONArray("parameter");
+                    Object paramObj = formData.get("parameter");
+                    JSONArray jsonArray;
+                    if (paramObj instanceof JSONArray) {
+                        jsonArray = (JSONArray) paramObj;
+                    } else if (paramObj instanceof JSONObject) {
+                        jsonArray = new JSONArray();
+                        jsonArray.add(paramObj);
+                    } else {
+                        jsonArray = new JSONArray();
+                    }
                     String parameterName = parameterDefinition.getName();
                     for (Object jsonArrayItem : jsonArray) {
                         JSONObject jsonObj = (JSONObject)jsonArrayItem;
