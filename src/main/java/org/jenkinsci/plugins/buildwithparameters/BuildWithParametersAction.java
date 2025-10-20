@@ -2,11 +2,12 @@ package org.jenkinsci.plugins.buildwithparameters;
 
 import hudson.model.Action;
 import hudson.model.BooleanParameterDefinition;
-import hudson.model.BooleanParameterValue;
 import hudson.model.BuildableItem;
 import hudson.model.Cause;
 import hudson.model.CauseAction;
 import hudson.model.ChoiceParameterDefinition;
+import hudson.model.FileParameterDefinition;
+import hudson.model.FileParameterValue;
 import hudson.model.Job;
 import hudson.model.ParameterDefinition;
 import hudson.model.ParameterValue;
@@ -17,13 +18,19 @@ import hudson.model.PasswordParameterValue;
 import hudson.model.StringParameterDefinition;
 import hudson.model.TextParameterDefinition;
 import hudson.util.Secret;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Logger;
+
 import javax.servlet.ServletException;
 import jenkins.model.Jenkins;
 import jenkins.model.ParameterizedJobMixIn.ParameterizedJob;
+import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
+
+import org.apache.commons.fileupload.FileItem;
 import org.kohsuke.stapler.Stapler;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
@@ -31,6 +38,7 @@ import org.kohsuke.stapler.interceptor.RequirePOST;
 
 public class BuildWithParametersAction<T extends Job<?, ?> & ParameterizedJob> implements Action {
     private static final String URL_NAME = "parambuild";
+    private final static Logger LOG = Logger.getLogger(BuildWithParametersAction.class.getName());
 
     private final T project;
 
@@ -63,13 +71,17 @@ public class BuildWithParametersAction<T extends Job<?, ?> & ParameterizedJob> i
                 buildParameter.setType(BuildParameterType.STRING);
             } else if (parameterDefinition.getClass().isAssignableFrom(TextParameterDefinition.class)) {
                 buildParameter.setType(BuildParameterType.TEXT);
+            } else if (parameterDefinition.getClass().isAssignableFrom(FileParameterDefinition.class)) {
+                buildParameter.setType(BuildParameterType.FILE);
             } else {
                 // default to string
                 buildParameter.setType(BuildParameterType.STRING);
             }
 
             try {
-                buildParameter.setValue(getParameterDefinitionValue(parameterDefinition));
+                // this probably won't work for files, but that's okay for our use case
+                ParameterValue parameterValue = getParameterDefinitionValue(parameterDefinition);
+                buildParameter.setValue(parameterValue);
             } catch (IllegalArgumentException ignored) {
                 // If a value was provided that does not match available options, leave the value blank.
             }
@@ -110,17 +122,38 @@ public class BuildWithParametersAction<T extends Job<?, ?> & ParameterizedJob> i
 
         JSONObject formData = req.getSubmittedForm();
         if (!formData.isEmpty()) {
+            // LOG.info(formData.toString());
+
             for (ParameterDefinition parameterDefinition : getParameterDefinitions()) {
                 ParameterValue parameterValue = parameterDefinition.createValue(req);
-                if (parameterValue != null) {
-                    if (parameterValue.getClass().isAssignableFrom(BooleanParameterValue.class)) {
-                        boolean value = (req.getParameter(parameterDefinition.getName()) != null);
-                        parameterValue = ((BooleanParameterDefinition) parameterDefinition).createValue(String.valueOf(value));
-                    } else if (parameterValue.getClass().isAssignableFrom(PasswordParameterValue.class)) {
-                        parameterValue = applyDefaultPassword((PasswordParameterDefinition) parameterDefinition,
-                                                                (PasswordParameterValue) parameterValue);
+
+                if (parameterDefinition.getClass().isAssignableFrom(BooleanParameterDefinition.class)) {
+                    boolean value = (req.getParameter(parameterDefinition.getName()) != null);
+                    parameterValue = ((BooleanParameterDefinition) parameterDefinition).createValue(String.valueOf(value));
+                } else if (parameterDefinition.getClass().isAssignableFrom(PasswordParameterDefinition.class)) {
+                    parameterValue = applyDefaultPassword((PasswordParameterDefinition) parameterDefinition,
+                                                            (PasswordParameterValue) parameterValue);
+                } else if (parameterDefinition.getClass().isAssignableFrom(FileParameterDefinition.class)) {
+                    // so we are doing some hacky stuff to map the parameter name e.g. fileparam.txt to the file name e.g. file0
+                    // it really feels like there should be a way of making getParameter("fileparam.txt") return "file0"?
+                    // anyway, with this latest jelly template, on a param build, formData is e.g. {"parameter":[{"strparam":""},{"name":"fileparam.txt","":"file0"},{"name":"fileparam2.txt","":"file1"}]...
+                    // in a regular build with parameters, this is e.g. {"parameter":[{"name":"strparam","value":""},{"name":"fileparam.txt","file":"file0"},{"name":"fileparam2.txt","file":"file1"}]...
+                    // which is still a bit different for ALL parameter types
+                    JSONArray jsonArray = formData.getJSONArray("parameter");
+                    String parameterName = parameterDefinition.getName();
+                    for (Object jsonArrayItem : jsonArray) {
+                        JSONObject jsonObj = (JSONObject)jsonArrayItem;
+                        if (jsonObj.has("name") && jsonObj.getString("name").equals(parameterName)) {
+                            String fileName = jsonObj.getString("");
+                            FileItem fileItem = req.getFileItem(fileName);
+                            FileParameterValue fileParameterValue = new FileParameterValue(parameterName, fileItem);
+                            fileParameterValue.setDescription(parameterDefinition.getDescription());
+                            parameterValue = fileParameterValue;
+                            break;
+                        }
                     }
                 }
+
                 // This will throw an exception if the provided value is not a valid option for the parameter.
                 // This is the desired behavior, as we want to ensure valid submissions.
                 values.add(parameterValue);
