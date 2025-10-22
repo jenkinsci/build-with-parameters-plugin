@@ -17,6 +17,7 @@ import hudson.model.StringParameterDefinition;
 import hudson.model.StringParameterValue;
 
 import java.io.IOException;
+import java.util.List;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -121,5 +122,29 @@ public class BuildWithParametersActionTest {
         assertEquals(actualStrValue, "evenNewerValue");
         boolean actualBoolValue = ((BooleanParameterValue) parameterAction.getParameter("bool_param")).value;
         assertEquals(actualBoolValue, true);
+    }
+
+    @Test
+    public void getAvailableParameters_fileParamSkipsCreateValue() throws Exception {
+        FileParameterDefinition fileParam = new FileParameterDefinition("file_param");
+        FreeStyleProject project = j.createFreeStyleProject();
+        project.addProperty(new ParametersDefinitionProperty(fileParam));
+
+        class CountingAction extends BuildWithParametersAction<FreeStyleProject> {
+            int calls = 0;
+            CountingAction(FreeStyleProject p) { super(p); }
+            @Override
+            ParameterValue getParameterDefinitionValue(ParameterDefinition pd) {
+                calls++;
+                return null;
+            }
+        }
+
+        CountingAction action = new CountingAction(project);
+        List<BuildParameter> params = action.getAvailableParameters();
+        assertEquals(1, params.size());
+        assertEquals(BuildParameterType.FILE, ((BuildParameter) params.get(0)).getType());
+        // ensure we did NOT invoke createValue for file param
+        assertEquals(0, action.calls);
     }
 }
