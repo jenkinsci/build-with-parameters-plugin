@@ -19,6 +19,9 @@ import hudson.model.StringParameterValue;
 import java.io.IOException;
 import java.util.List;
 
+import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
+
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
@@ -146,5 +149,52 @@ public class BuildWithParametersActionTest {
         assertEquals(BuildParameterType.FILE, ((BuildParameter) params.get(0)).getType());
         // ensure we did NOT invoke createValue for file param
         assertEquals(0, action.calls);
+    }
+
+    @Test
+    public void resolveFileParameter_acceptsJSONArray() throws Exception {
+        FileParameterDefinition fileParam = new FileParameterDefinition("file_param");
+        FreeStyleProject project = j.createFreeStyleProject();
+        project.addProperty(new ParametersDefinitionProperty(fileParam));
+
+        BuildWithParametersAction<FreeStyleProject> action = new BuildWithParametersAction<>(project);
+        
+        // Simulate formData with multiple parameters: {"parameter": [{"name":"str","value":"x"}, {"name":"file_param","":"file0"}]}
+        JSONArray multiParams = new JSONArray();
+        JSONObject strParam = new JSONObject();
+        strParam.put("name", "str");
+        strParam.put("value", "x");
+        multiParams.add(strParam);
+        
+        JSONObject fileObj = new JSONObject();
+        fileObj.put("name", "file_param");
+        fileObj.put("", "file0");
+        multiParams.add(fileObj);
+        
+        JSONObject formData = new JSONObject();
+        formData.put("parameter", multiParams);
+
+        // Pass null request; method will check null and return null without throwing exception
+        ParameterValue result = action.resolveFileParameter(null, formData, fileParam);
+        assertEquals(null, result); // Returns null when no real request provided
+    }
+
+    @Test
+    public void resolveFileParameter_acceptsJSONObject() throws Exception {
+        FileParameterDefinition fileParam = new FileParameterDefinition("file_param");
+        FreeStyleProject project = j.createFreeStyleProject();
+        project.addProperty(new ParametersDefinitionProperty(fileParam));
+
+        BuildWithParametersAction<FreeStyleProject> action = new BuildWithParametersAction<>(project);
+        
+        // Simulate formData with single parameter object: {"parameter": {"name":"file_param","":"file0"}}
+        JSONObject single = new JSONObject();
+        single.put("name", "file_param");
+        single.put("", "file0");
+        JSONObject formData = new JSONObject();
+        formData.put("parameter", single);
+
+        ParameterValue result = action.resolveFileParameter(null, formData, fileParam);
+        assertEquals(null, result); // Returns null when no real request provided
     }
 }

@@ -136,33 +136,7 @@ public class BuildWithParametersAction<T extends Job<?, ?> & ParameterizedJob> i
                     parameterValue = applyDefaultPassword((PasswordParameterDefinition) parameterDefinition,
                                                             (PasswordParameterValue) parameterValue);
                 } else if (parameterDefinition.getClass().isAssignableFrom(FileParameterDefinition.class)) {
-                    // so we are doing some hacky stuff to map the parameter name e.g. fileparam.txt to the file name e.g. file0
-                    // it really feels like there should be a way of making getParameter("fileparam.txt") return "file0"?
-                    // anyway, with this latest jelly template, on a param build, formData is e.g. {"parameter":[{"strparam":""},{"name":"fileparam.txt","":"file0"},{"name":"fileparam2.txt","":"file1"}]...
-                    // in a regular build with parameters, this is e.g. {"parameter":[{"name":"strparam","value":""},{"name":"fileparam.txt","file":"file0"},{"name":"fileparam2.txt","file":"file1"}]...
-                    // which is still a bit different for ALL parameter types
-                    Object paramObj = formData.get("parameter");
-                    JSONArray jsonArray;
-                    if (paramObj instanceof JSONArray) {
-                        jsonArray = (JSONArray) paramObj;
-                    } else if (paramObj instanceof JSONObject) {
-                        jsonArray = new JSONArray();
-                        jsonArray.add(paramObj);
-                    } else {
-                        jsonArray = new JSONArray();
-                    }
-                    String parameterName = parameterDefinition.getName();
-                    for (Object jsonArrayItem : jsonArray) {
-                        JSONObject jsonObj = (JSONObject)jsonArrayItem;
-                        if (jsonObj.has("name") && jsonObj.getString("name").equals(parameterName)) {
-                            String fileName = jsonObj.getString("");
-                            FileItem fileItem = req.getFileItem(fileName);
-                            FileParameterValue fileParameterValue = new FileParameterValue(parameterName, fileItem);
-                            fileParameterValue.setDescription(parameterDefinition.getDescription());
-                            parameterValue = fileParameterValue;
-                            break;
-                        }
-                    }
+                    parameterValue = resolveFileParameter(req, formData, (FileParameterDefinition) parameterDefinition);
                 }
 
                 // This will throw an exception if the provided value is not a valid option for the parameter.
@@ -173,6 +147,39 @@ public class BuildWithParametersAction<T extends Job<?, ?> & ParameterizedJob> i
 
         Jenkins.get().getQueue().schedule(project, 0, new ParametersAction(values), new CauseAction(new Cause.UserIdCause()));
         rsp.sendRedirect("../");
+    }
+
+    ParameterValue resolveFileParameter(StaplerRequest req,
+                                        JSONObject formData,
+                                        FileParameterDefinition def) throws ServletException, IOException {
+        if (req == null) {
+            return null;
+        }
+        
+        // Handle both JSONArray (multiple params) and JSONObject (single param)
+        Object paramObj = formData.get("parameter");
+        JSONArray jsonArray;
+        if (paramObj instanceof JSONArray) {
+            jsonArray = (JSONArray) paramObj;
+        } else if (paramObj instanceof JSONObject) {
+            jsonArray = new JSONArray();
+            jsonArray.add(paramObj);
+        } else {
+            jsonArray = new JSONArray();
+        }
+        
+        String parameterName = def.getName();
+        for (Object jsonArrayItem : jsonArray) {
+            JSONObject jsonObj = (JSONObject) jsonArrayItem;
+            if (jsonObj.has("name") && jsonObj.getString("name").equals(parameterName)) {
+                String fileName = jsonObj.getString("");
+                FileItem fileItem = req.getFileItem(fileName);
+                FileParameterValue fileParameterValue = new FileParameterValue(parameterName, fileItem);
+                fileParameterValue.setDescription(def.getDescription());
+                return fileParameterValue;
+            }
+        }
+        return null;
     }
 
     ParameterValue applyDefaultPassword(PasswordParameterDefinition parameterDefinition,
