@@ -1,26 +1,35 @@
 package org.jenkinsci.plugins.buildwithparameters;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import hudson.model.PasswordParameterValue;
 
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
-public class BuildParameterTest {
-    @Rule public JenkinsRule j = new JenkinsRule();
-    
+@WithJenkins
+class BuildParameterTest {
+
+    private JenkinsRule j;
+
+    @BeforeEach
+    void beforeEach(JenkinsRule rule) {
+        j = rule;
+    }
+
     @Test
-    public void setValue_passwordParam() {
+    void setValue_passwordParam() {
         BuildParameter bp = new BuildParameter("n","v");
         bp.setValue(new PasswordParameterValue("asdf", "fdfd"));
         assertEquals(BuildParameter.JOB_DEFAULT_PASSWORD_PLACEHOLDER, bp.getValue());
     }
-    
+
     @Test
-    public void isDefaultPasswordPlaceholder() {
+    void isDefaultPasswordPlaceholder() {
         String expected = BuildParameter.JOB_DEFAULT_PASSWORD_PLACEHOLDER;
         assertFalse(BuildParameter.isDefaultPasswordPlaceholder(null));
         assertFalse(BuildParameter.isDefaultPasswordPlaceholder(""));

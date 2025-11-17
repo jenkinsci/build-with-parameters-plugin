@@ -1,7 +1,8 @@
 package org.jenkinsci.plugins.buildwithparameters;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertSame;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
+
 import hudson.model.ParameterValue;
 import hudson.model.FreeStyleProject;
 import hudson.model.ParameterDefinition;
@@ -14,8 +15,8 @@ import hudson.model.StringParameterValue;
 
 import java.io.IOException;
 
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.JenkinsRule.WebClient;
 
@@ -23,17 +24,25 @@ import org.htmlunit.html.DomElement;
 import org.htmlunit.html.HtmlForm;
 import org.htmlunit.html.HtmlFormUtil;
 import org.htmlunit.html.HtmlPage;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
-public class BuildWithParametersActionTest {
-    @Rule public JenkinsRule j = new JenkinsRule();
+@WithJenkins
+class BuildWithParametersActionTest {
+
+    private JenkinsRule j;
+
+    @BeforeEach
+    void beforeEach(JenkinsRule rule) {
+        j = rule;
+    }
 
     @Test
-    public void getAvailableParameters_passwordParam() throws IOException {
+    void getAvailableParameters_passwordParam() throws IOException {
         ParameterDefinition pwParamDef = new PasswordParameterDefinition("n", BuildParameter.JOB_DEFAULT_PASSWORD_PLACEHOLDER, "d");
         BuildWithParametersAction bwpa = testableProject(pwParamDef);
 
         BuildParameter pwParameter = (BuildParameter) bwpa.getAvailableParameters().get(0);
-        assertSame(pwParameter.getType(), BuildParameterType.PASSWORD);
+        assertSame(BuildParameterType.PASSWORD, pwParameter.getType());
     }
 
     private BuildWithParametersAction testableProject(
@@ -51,7 +60,7 @@ public class BuildWithParametersActionTest {
     }
 
     @Test
-    public void applyDefaultPassword() throws IOException {
+    void applyDefaultPassword() throws IOException {
         String jobDefaultPassword = "defaultPassword";
         String passwordFromRequest = BuildParameter.JOB_DEFAULT_PASSWORD_PLACEHOLDER;
         String adjustedPassword = applyDefaultPasswordHelper(jobDefaultPassword, passwordFromRequest);
@@ -60,7 +69,7 @@ public class BuildWithParametersActionTest {
     }
 
     @Test
-    public void applyDefaultPassword_nonDefault() throws IOException {
+    void applyDefaultPassword_nonDefault() throws IOException {
         String jobDefaultPassword = "defaultPassword";
         String passwordFromRequest = "userSuppliedPassword";
         String adjustedPassword = applyDefaultPasswordHelper(jobDefaultPassword, passwordFromRequest);
@@ -79,7 +88,7 @@ public class BuildWithParametersActionTest {
     }
 
     @Test
-    public void provideParametersViaUi() throws Exception {
+    void provideParametersViaUi() throws Exception {
         FreeStyleProject project = j.createFreeStyleProject();
         StringParameterDefinition params = new StringParameterDefinition("param", "default");
         project.addProperty(new ParametersDefinitionProperty(params));
@@ -103,6 +112,6 @@ public class BuildWithParametersActionTest {
 
         final ParametersAction parameterAction = project.getLastBuild().getAction(ParametersAction.class);
         final String actualValue = ((StringParameterValue) parameterAction.getParameter("param")).value;
-        assertEquals(actualValue, "newValue");
+        assertEquals("newValue", actualValue);
     }
 }
