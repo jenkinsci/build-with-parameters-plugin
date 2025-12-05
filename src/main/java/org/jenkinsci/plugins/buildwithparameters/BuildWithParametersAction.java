@@ -149,7 +149,7 @@ public class BuildWithParametersAction<T extends Job<?, ?> & ParameterizedJob> i
         rsp.sendRedirect("../");
     }
 
-    ParameterValue resolveFileParameter(StaplerRequest req,
+    ParameterValue resolveFileParameter(StaplerRequest2 req,
                                         JSONObject formData,
                                         FileParameterDefinition def) throws ServletException, IOException {
         if (req == null) {
