@@ -1,5 +1,5 @@
-jenkins-build-with-parameters-plugin
-====================================
+Build with Parameters Plugin
+============================
 
 Allows the user to provide parameters for a build in the url, prompting for confirmation before triggering the job.
 
@@ -15,6 +15,8 @@ An example triggering of a job with the plugin:
 Running `mvn hpi:run` will get you hpi plugin file in "./target" directory
 
 ## Changelog
+
+The latest releases are documented in the [GitHub releases page](https://github.com/jenkinsci/build-with-parameters-plugin/releases).
 
 ### 1.7 - Mar 5, 2022
 
@@ -46,4 +48,4 @@ Running `mvn hpi:run` will get you hpi plugin file in "./target" directory
 
 -   Hide job action from UI to avoid confusion
     ([JENKINS-25413](https://issues.jenkins-ci.org/browse/JENKINS-25413)).
-
+    
