@@ -123,7 +123,9 @@ public class BuildWithParametersAction<T extends Job<?, ?> & ParameterizedJob> i
                 }
                 // This will throw an exception if the provided value is not a valid option for the parameter.
                 // This is the desired behavior, as we want to ensure valid submissions.
-                values.add(parameterValue);
+                if (parameterValue != null) {
+                    values.add(parameterValue);
+                }
             }
         }
 
