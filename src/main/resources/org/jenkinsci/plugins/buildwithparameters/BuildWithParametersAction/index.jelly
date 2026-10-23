@@ -10,8 +10,8 @@
             <h2>Trigger ${it.projectName}</h2>
             <f:form method="post" action="configSubmit" name="config">
                 <j:forEach var="parameter" items="${it.availableParameters}">
-                    <j:set var="escapeEntryTitleAndDescription" value="true"/>
-                    <f:entry title="${parameter.name}" description="${parameter.description}">
+                    <j:set var="escapeEntryTitleAndDescription" value="false"/>
+                    <f:entry title="${h.escape(parameter.name)}" description="${parameter.formattedDescription}">
                         <div name="parameter">
                             <j:choose>
                                 <j:when test="${parameter.type == 'PASSWORD'}">

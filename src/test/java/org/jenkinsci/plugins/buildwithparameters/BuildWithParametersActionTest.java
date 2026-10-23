@@ -1,8 +1,14 @@
 package org.jenkinsci.plugins.buildwithparameters;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import hudson.Util;
+import hudson.markup.MarkupFormatter;
+import hudson.markup.EscapedMarkupFormatter;
 import hudson.model.FileParameterDefinition;
 import hudson.model.FreeStyleProject;
 import hudson.model.ParameterDefinition;
@@ -15,6 +21,7 @@ import hudson.model.StringParameterDefinition;
 import hudson.model.StringParameterValue;
 
 import java.io.IOException;
+import java.io.Writer;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -86,6 +93,58 @@ class BuildWithParametersActionTest {
 
         ParameterValue adjustedParamValue = bwpa.applyDefaultPassword(pwParamDef, parameterValue);
         return BuildWithParametersAction.getPasswordValue((PasswordParameterValue)adjustedParamValue);
+    }
+
+    @Test
+    void rendersFormattedParameterDescriptionLikeStandardBuildForm() throws Exception {
+        String description = "<strong id=\"parameter-description\">Choose a release</strong>";
+        String name = "<strong id=\"parameter-name\">release</strong>";
+        // Allow only this fixed HTML fixture, without requiring an extra formatter plugin.
+        j.jenkins.setMarkupFormatter(new MarkupFormatter() {
+            @Override
+            public void translate(String markup, Writer output) throws IOException {
+                output.write(description.equals(markup) ? description : Util.escape(markup));
+            }
+        });
+        FreeStyleProject project = j.createFreeStyleProject();
+        project.addProperty(new ParametersDefinitionProperty(
+                new StringParameterDefinition(name, "default", description)));
+
+        try (WebClient wc = j.createWebClient()) {
+            // Jenkins intentionally returns 405 for the standard build confirmation form.
+            wc.getOptions().setThrowExceptionOnFailingStatusCode(false);
+            wc.getOptions().setPrintContentOnFailingStatusCode(false);
+            HtmlPage standardForm = wc.getPage(project, "build?delay=0sec");
+            assertEquals(405, standardForm.getWebResponse().getStatusCode());
+            assertEquals(1, standardForm.getByXPath("//strong[@id='parameter-description']").size());
+
+            wc.getOptions().setThrowExceptionOnFailingStatusCode(true);
+            HtmlPage confirmationForm = wc.getPage(project, "parambuild");
+            assertEquals(1, confirmationForm.getByXPath("//strong[@id='parameter-description']").size());
+            assertFalse(confirmationForm.asNormalizedText().contains(description));
+            assertEquals(0, confirmationForm.getByXPath("//strong[@id='parameter-name']").size());
+            assertTrue(confirmationForm.asNormalizedText().contains(name));
+            assertEquals("default", confirmationForm.getFormByName("config").getInputByName(name).getValue());
+        }
+        assertNull(project.getLastBuild());
+        assertEquals(0, j.jenkins.getQueue().getItems().length);
+    }
+
+    @Test
+    void escapesParameterDescriptionWithPlainTextFormatter() throws Exception {
+        j.jenkins.setMarkupFormatter(new EscapedMarkupFormatter());
+        String description = "<strong id=\"parameter-description\">Choose a release</strong> & confirm";
+        FreeStyleProject project = j.createFreeStyleProject();
+        project.addProperty(new ParametersDefinitionProperty(
+                new StringParameterDefinition("release", "default", description)));
+
+        try (WebClient wc = j.createWebClient()) {
+            HtmlPage page = wc.getPage(project, "parambuild");
+            assertEquals(0, page.getByXPath("//strong[@id='parameter-description']").size());
+            assertTrue(page.asNormalizedText().contains(description));
+        }
+        assertNull(project.getLastBuild());
+        assertEquals(0, j.jenkins.getQueue().getItems().length);
     }
 
     @Test

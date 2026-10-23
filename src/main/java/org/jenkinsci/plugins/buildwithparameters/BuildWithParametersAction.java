@@ -51,7 +51,8 @@ public class BuildWithParametersAction<T extends Job<?, ?> & ParameterizedJob> i
         List<BuildParameter> buildParameters = new ArrayList<>();
 
         for (ParameterDefinition parameterDefinition : getParameterDefinitions()) {
-            BuildParameter buildParameter = new BuildParameter(parameterDefinition.getName(), parameterDefinition.getDescription());
+            BuildParameter buildParameter = new BuildParameter(parameterDefinition.getName(),
+                    parameterDefinition.getDescription(), parameterDefinition.getFormattedDescription());
             if (parameterDefinition.getClass().isAssignableFrom(PasswordParameterDefinition.class)) {
                 buildParameter.setType(BuildParameterType.PASSWORD);
             } else if (parameterDefinition.getClass().isAssignableFrom(BooleanParameterDefinition.class)) {
