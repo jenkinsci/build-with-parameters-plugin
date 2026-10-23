@@ -3,9 +3,10 @@ package org.jenkinsci.plugins.buildwithparameters;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 
-import hudson.model.ParameterValue;
+import hudson.model.FileParameterDefinition;
 import hudson.model.FreeStyleProject;
 import hudson.model.ParameterDefinition;
+import hudson.model.ParameterValue;
 import hudson.model.ParametersAction;
 import hudson.model.ParametersDefinitionProperty;
 import hudson.model.PasswordParameterDefinition;
@@ -113,5 +114,23 @@ class BuildWithParametersActionTest {
         final ParametersAction parameterAction = project.getLastBuild().getAction(ParametersAction.class);
         final String actualValue = ((StringParameterValue) parameterAction.getParameter("param")).value;
         assertEquals("newValue", actualValue);
+    }
+
+    @Test
+    void skipsParameterWithoutSubmittedValue() throws Exception {
+        FreeStyleProject project = j.createFreeStyleProject();
+        project.addProperty(new ParametersDefinitionProperty(new FileParameterDefinition("file")));
+
+        WebClient wc = j.createWebClient();
+        HtmlPage page = wc.getPage(project, "parambuild");
+        HtmlForm form = page.getFormByName("config");
+        DomElement submit = page.createElement("button");
+        submit.setAttribute("type", "submit");
+        form.appendChild(submit);
+        submit.click();
+
+        j.waitUntilNoActivity();
+        ParametersAction parameters = project.getLastBuild().getAction(ParametersAction.class);
+        assertEquals(0, parameters.getParameters().size());
     }
 }
