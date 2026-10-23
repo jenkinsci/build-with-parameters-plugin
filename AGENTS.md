@@ -18,6 +18,7 @@ This is a Jenkins plugin that shows a confirmation form at a job's `/parambuild`
 - Derive Java and Jenkins compatibility requirements from `pom.xml` and `Jenkinsfile`; do not copy version numbers into these instructions.
 - Keep committed documentation free of personal information and machine-specific paths.
 - Format commit messages as `<branch> - <commit type> - <commit message>`, using the current branch name and a type such as `feat`, `fix`, `docs`, `refactor`, `test`, or `chore`. Example: `master - docs - add contributor guidance`.
+- When creating a pull request for a bug fix, add the `bug` label.
 - Before every push, ask for confirmation and wait for explicit approval, even if the original request includes pushing. Identify the remote and branch in the confirmation request.
 
 ## Verification
