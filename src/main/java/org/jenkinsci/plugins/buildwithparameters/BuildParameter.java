@@ -1,5 +1,6 @@
 package org.jenkinsci.plugins.buildwithparameters;
 
+import hudson.Util;
 import hudson.model.BooleanParameterValue;
 import hudson.model.ParameterValue;
 import hudson.model.PasswordParameterValue;
@@ -13,12 +14,18 @@ public class BuildParameter {
     private BuildParameterType type;
     private final String name;
     private final String description;
+    private final String formattedDescription;
     private String value;
     private List<String> choices = null;
 
     public BuildParameter(String name, String description) {
+        this(name, description, Util.escape(description));
+    }
+
+    BuildParameter(String name, String description, String formattedDescription) {
         this.name = name;
         this.description = description;
+        this.formattedDescription = formattedDescription;
     }
 
     public static boolean isDefaultPasswordPlaceholder(String candidate) {
@@ -34,6 +41,10 @@ public class BuildParameter {
 
     public String getDescription() {
         return description;
+    }
+
+    public String getFormattedDescription() {
+        return formattedDescription;
     }
 
     public String getValue() {
