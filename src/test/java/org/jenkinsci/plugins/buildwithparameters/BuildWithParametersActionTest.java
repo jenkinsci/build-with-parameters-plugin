@@ -3,6 +3,7 @@ package org.jenkinsci.plugins.buildwithparameters;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -16,11 +17,18 @@ import hudson.model.ParameterValue;
 import hudson.model.ParametersAction;
 import hudson.model.ParametersDefinitionProperty;
 import hudson.model.PasswordParameterDefinition;
+import hudson.model.Queue;
 import hudson.model.PasswordParameterValue;
 import hudson.model.StringParameterDefinition;
 import hudson.model.StringParameterValue;
+import org.jvnet.jenkins.plugins.nodelabelparameter.LabelParameterDefinition;
+import org.jvnet.jenkins.plugins.nodelabelparameter.LabelParameterValue;
+import org.jvnet.jenkins.plugins.nodelabelparameter.NodeParameterDefinition;
+import org.jvnet.jenkins.plugins.nodelabelparameter.NodeParameterValue;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.io.Writer;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -31,7 +39,9 @@ import org.jvnet.hudson.test.JenkinsRule.WebClient;
 import org.htmlunit.html.DomElement;
 import org.htmlunit.html.HtmlForm;
 import org.htmlunit.html.HtmlFormUtil;
+import org.htmlunit.html.HtmlInput;
 import org.htmlunit.html.HtmlPage;
+import org.htmlunit.html.HtmlSelect;
 import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
 @WithJenkins
@@ -145,6 +155,52 @@ class BuildWithParametersActionTest {
         }
         assertNull(project.getLastBuild());
         assertEquals(0, j.jenkins.getQueue().getItems().length);
+    }
+
+    @Test
+    void rendersAndSubmitsNodeAndLabelParametersUsingTheirOwnControls() throws Exception {
+        FreeStyleProject project = j.createFreeStyleProject();
+        List<String> allowedNodes = new ArrayList<>();
+        allowedNodes.add("built-in");
+        project.addProperty(new ParametersDefinitionProperty(
+                new NodeParameterDefinition("NODE", "Select a node", "built-in", allowedNodes, null),
+                new LabelParameterDefinition("LABEL", "Select a label", "built-in")));
+
+        try (WebClient wc = j.createWebClient()) {
+            wc.getOptions().setJavaScriptEnabled(true);
+            assertNotNull(j.jenkins.pluginManager.getPlugin("nodelabelparameter"));
+            wc.getOptions().setThrowExceptionOnFailingStatusCode(false);
+            wc.getOptions().setPrintContentOnFailingStatusCode(false);
+            HtmlPage standardForm = wc.getPage(project, "build?delay=0sec");
+            assertEquals(405, standardForm.getWebResponse().getStatusCode());
+            assertEquals(1, standardForm.getByXPath("//select[@name='value']").size());
+
+            wc.getOptions().setThrowExceptionOnFailingStatusCode(true);
+            HtmlPage page = wc.getPage(project, "parambuild");
+            HtmlSelect nodeSelect = (HtmlSelect) page.getByXPath(
+                    "//div[@name='parameter'][input[@name='name' and @value='NODE']]//select[@name='value']").get(0);
+            HtmlInput labelInput = (HtmlInput) page.getByXPath(
+                    "//div[@name='parameter'][input[@name='name' and @value='LABEL']]//input[@name='value']").get(0);
+            nodeSelect.setSelectedAttribute("built-in", true);
+            labelInput.setValue("built-in");
+
+            HtmlForm form = page.getFormByName("config");
+            DomElement submit = page.createElement("button");
+            submit.setAttribute("type", "submit");
+            form.appendChild(submit);
+            submit.click();
+        }
+
+        Queue.Item item = j.jenkins.getQueue().getItem(project);
+        for (int i = 0; item == null && project.getLastBuild() == null && i < 50; i++) {
+            Thread.sleep(100);
+            item = j.jenkins.getQueue().getItem(project);
+        }
+        ParametersAction parameters = item != null
+                ? item.getAction(ParametersAction.class)
+                : project.getLastBuild().getAction(ParametersAction.class);
+        assertEquals("built-in", ((NodeParameterValue) parameters.getParameter("NODE")).getLabel());
+        assertEquals("built-in", ((LabelParameterValue) parameters.getParameter("LABEL")).getLabel());
     }
 
     @Test
