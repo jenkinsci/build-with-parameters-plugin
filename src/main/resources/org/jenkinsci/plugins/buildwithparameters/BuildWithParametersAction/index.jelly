@@ -1,5 +1,5 @@
 <?jelly escape-by-default='true'?>
-<j:jelly xmlns:j="jelly:core" xmlns:l="/lib/layout" xmlns:f="/lib/form">
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:l="/lib/layout" xmlns:f="/lib/form">
     <l:layout title="${%Build With Parameters}" norefresh="true" permission="${it.requiredPermission}">
         <l:side-panel>
             <l:tasks>
@@ -10,32 +10,40 @@
             <h2>Trigger ${it.projectName}</h2>
             <f:form method="post" action="configSubmit" name="config">
                 <j:forEach var="parameter" items="${it.availableParameters}">
-                    <j:set var="escapeEntryTitleAndDescription" value="false"/>
-                    <f:entry title="${h.escape(parameter.name)}" description="${parameter.formattedDescription}">
-                        <div name="parameter">
-                            <j:choose>
-                                <j:when test="${parameter.type == 'PASSWORD'}">
-                                    <f:password name="${parameter.name}" value="${parameter.value}"/>
-                                </j:when>
-                                <j:when test="${parameter.type == 'BOOLEAN'}">
-                                    <f:checkbox name="${parameter.name}" checked="${parameter.value}"/>
-                                </j:when>
-                                <j:when test="${parameter.type == 'CHOICE'}">
-                                    <select name="${parameter.name}">
-                                        <j:forEach var="value" items="${parameter.choices}">
-                                            <f:option selected="${parameter.value == value}">${value}</f:option>
-                                        </j:forEach>
-                                    </select>
-                                </j:when>
-                                <j:when test="${parameter.type == 'TEXT'}">
-                                    <f:textarea name="${parameter.name}" value="${parameter.value}"/>
-                                </j:when>
-                                <j:otherwise>
-                                    <f:textbox name="${parameter.name}" value="${parameter.value}"/>
-                                </j:otherwise>
-                            </j:choose>
-                        </div>
-                    </f:entry>
+                    <j:choose>
+                        <j:when test="${parameter.type == 'CUSTOM'}">
+                            <st:include it="${parameter.parameterDefinition}"
+                                        page="${parameter.parameterDefinition.descriptor.valuePage}"/>
+                        </j:when>
+                        <j:otherwise>
+                            <j:set var="escapeEntryTitleAndDescription" value="false"/>
+                            <f:entry title="${h.escape(parameter.name)}" description="${parameter.formattedDescription}">
+                                <div name="parameter">
+                                    <j:choose>
+                                        <j:when test="${parameter.type == 'PASSWORD'}">
+                                            <f:password name="${parameter.name}" value="${parameter.value}"/>
+                                        </j:when>
+                                        <j:when test="${parameter.type == 'BOOLEAN'}">
+                                            <f:checkbox name="${parameter.name}" checked="${parameter.value}"/>
+                                        </j:when>
+                                        <j:when test="${parameter.type == 'CHOICE'}">
+                                            <select name="${parameter.name}">
+                                                <j:forEach var="value" items="${parameter.choices}">
+                                                    <f:option selected="${parameter.value == value}">${value}</f:option>
+                                                </j:forEach>
+                                            </select>
+                                        </j:when>
+                                        <j:when test="${parameter.type == 'TEXT'}">
+                                            <f:textarea name="${parameter.name}" value="${parameter.value}"/>
+                                        </j:when>
+                                        <j:otherwise>
+                                            <f:textbox name="${parameter.name}" value="${parameter.value}"/>
+                                        </j:otherwise>
+                                    </j:choose>
+                                </div>
+                            </f:entry>
+                        </j:otherwise>
+                    </j:choose>
                 </j:forEach>
                 <f:block>
                     <f:submit value="${%Build}"/>

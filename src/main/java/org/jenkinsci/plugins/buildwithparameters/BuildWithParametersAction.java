@@ -23,6 +23,7 @@ import java.util.List;
 import jakarta.servlet.ServletException;
 import jenkins.model.Jenkins;
 import jenkins.model.ParameterizedJobMixIn.ParameterizedJob;
+import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 import org.kohsuke.stapler.Stapler;
 import org.kohsuke.stapler.StaplerRequest2;
@@ -51,8 +52,7 @@ public class BuildWithParametersAction<T extends Job<?, ?> & ParameterizedJob> i
         List<BuildParameter> buildParameters = new ArrayList<>();
 
         for (ParameterDefinition parameterDefinition : getParameterDefinitions()) {
-            BuildParameter buildParameter = new BuildParameter(parameterDefinition.getName(),
-                    parameterDefinition.getDescription(), parameterDefinition.getFormattedDescription());
+            BuildParameter buildParameter = new BuildParameter(parameterDefinition);
             if (parameterDefinition.getClass().isAssignableFrom(PasswordParameterDefinition.class)) {
                 buildParameter.setType(BuildParameterType.PASSWORD);
             } else if (parameterDefinition.getClass().isAssignableFrom(BooleanParameterDefinition.class)) {
@@ -65,8 +65,7 @@ public class BuildWithParametersAction<T extends Job<?, ?> & ParameterizedJob> i
             } else if (parameterDefinition.getClass().isAssignableFrom(TextParameterDefinition.class)) {
                 buildParameter.setType(BuildParameterType.TEXT);
             } else {
-                // default to string
-                buildParameter.setType(BuildParameterType.STRING);
+                buildParameter.setType(BuildParameterType.CUSTOM);
             }
 
             try {
@@ -112,7 +111,10 @@ public class BuildWithParametersAction<T extends Job<?, ?> & ParameterizedJob> i
         JSONObject formData = req.getSubmittedForm();
         if (!formData.isEmpty()) {
             for (ParameterDefinition parameterDefinition : getParameterDefinitions()) {
-                ParameterValue parameterValue = parameterDefinition.createValue(req);
+                JSONObject parameterData = findParameterData(formData, parameterDefinition.getName());
+                ParameterValue parameterValue = parameterData != null
+                        ? parameterDefinition.createValue(req, parameterData)
+                        : parameterDefinition.createValue(req);
                 if (parameterValue != null) {
                     if (parameterValue.getClass().isAssignableFrom(BooleanParameterValue.class)) {
                         boolean value = (req.getParameter(parameterDefinition.getName()) != null);
@@ -161,6 +163,20 @@ public class BuildWithParametersAction<T extends Job<?, ?> & ParameterizedJob> i
             return property.getParameterDefinitions();
         }
         return new ArrayList<>();
+    }
+
+    private JSONObject findParameterData(JSONObject formData, String parameterName) {
+        JSONArray parameters = formData.optJSONArray("parameter");
+        if (parameters == null) {
+            return null;
+        }
+        for (Object parameter : parameters) {
+            if (parameter instanceof JSONObject parameterData
+                    && parameterName.equals(parameterData.optString("name"))) {
+                return parameterData;
+            }
+        }
+        return null;
     }
 
 }
