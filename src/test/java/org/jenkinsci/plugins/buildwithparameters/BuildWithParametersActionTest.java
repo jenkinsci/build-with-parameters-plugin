@@ -12,6 +12,7 @@ import hudson.markup.MarkupFormatter;
 import hudson.markup.EscapedMarkupFormatter;
 import hudson.model.FileParameterDefinition;
 import hudson.model.FreeStyleProject;
+import hudson.plugins.validating_string_parameter.ValidatingStringParameterDefinition;
 import hudson.model.ParameterDefinition;
 import hudson.model.ParameterValue;
 import hudson.model.ParametersAction;
@@ -201,6 +202,62 @@ class BuildWithParametersActionTest {
                 : project.getLastBuild().getAction(ParametersAction.class);
         assertEquals("built-in", ((NodeParameterValue) parameters.getParameter("NODE")).getLabel());
         assertEquals("built-in", ((LabelParameterValue) parameters.getParameter("LABEL")).getLabel());
+    }
+
+    @Test
+    void rendersAndSubmitsSingleValidatingStringParameter() throws Exception {
+        FreeStyleProject project = j.createFreeStyleProject();
+        project.addProperty(new ParametersDefinitionProperty(validatingIpParameter()));
+
+        try (WebClient wc = j.createWebClient()) {
+            HtmlPage page = wc.getPage(project, "parambuild?ip=10.10.10.10");
+            HtmlInput input = (HtmlInput) page.getByXPath(
+                    "//div[@name='parameter'][input[@name='name' and @value='ip']]//input[@name='value']").get(0);
+            assertTrue(input.getAttribute("checkUrl").contains("validate"));
+            input.setValue("10.10.10.10");
+
+            HtmlForm form = page.getFormByName("config");
+            DomElement submit = page.createElement("button");
+            submit.setAttribute("type", "submit");
+            form.appendChild(submit);
+            submit.click();
+        }
+
+        for (int i = 0; project.getLastBuild() == null && i < 50; i++) {
+            Thread.sleep(100);
+        }
+        assertNotNull(project.getLastBuild());
+        ParametersAction parameters = project.getLastBuild().getAction(ParametersAction.class);
+        assertEquals("10.10.10.10", ((StringParameterValue) parameters.getParameter("ip")).value);
+    }
+
+    @Test
+    void rejectsInvalidSingleValidatingStringParameter() throws Exception {
+        FreeStyleProject project = j.createFreeStyleProject();
+        project.addProperty(new ParametersDefinitionProperty(validatingIpParameter()));
+
+        try (WebClient wc = j.createWebClient()) {
+            wc.getOptions().setThrowExceptionOnFailingStatusCode(false);
+            HtmlPage page = wc.getPage(project, "parambuild");
+            HtmlInput input = (HtmlInput) page.getByXPath(
+                    "//div[@name='parameter'][input[@name='name' and @value='ip']]//input[@name='value']").get(0);
+            input.setValue("not-an-ip");
+
+            HtmlForm form = page.getFormByName("config");
+            DomElement submit = page.createElement("button");
+            submit.setAttribute("type", "submit");
+            form.appendChild(submit);
+            HtmlPage response = submit.click();
+            assertTrue(response.getWebResponse().getStatusCode() >= 400);
+        }
+
+        assertNull(project.getLastBuild());
+        assertNull(j.jenkins.getQueue().getItem(project));
+    }
+
+    private ValidatingStringParameterDefinition validatingIpParameter() {
+        return new ValidatingStringParameterDefinition(
+                "ip", "10.0.0.1", "\\d+\\.\\d+\\.\\d+\\.\\d+", "Invalid IP", "IPv4");
     }
 
     @Test
