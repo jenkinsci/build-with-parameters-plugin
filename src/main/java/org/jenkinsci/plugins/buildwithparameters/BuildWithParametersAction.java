@@ -2,12 +2,11 @@ package org.jenkinsci.plugins.buildwithparameters;
 
 import hudson.model.Action;
 import hudson.model.BooleanParameterDefinition;
+import hudson.model.BooleanParameterValue;
 import hudson.model.BuildableItem;
 import hudson.model.Cause;
 import hudson.model.CauseAction;
 import hudson.model.ChoiceParameterDefinition;
-import hudson.model.FileParameterDefinition;
-import hudson.model.FileParameterValue;
 import hudson.model.Job;
 import hudson.model.ParameterDefinition;
 import hudson.model.ParameterValue;
@@ -18,19 +17,14 @@ import hudson.model.PasswordParameterValue;
 import hudson.model.StringParameterDefinition;
 import hudson.model.TextParameterDefinition;
 import hudson.util.Secret;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Logger;
-
 import jakarta.servlet.ServletException;
 import jenkins.model.Jenkins;
 import jenkins.model.ParameterizedJobMixIn.ParameterizedJob;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
-
-import org.apache.commons.fileupload.FileItem;
 import org.kohsuke.stapler.Stapler;
 import org.kohsuke.stapler.StaplerRequest2;
 import org.kohsuke.stapler.StaplerResponse2;
@@ -38,7 +32,6 @@ import org.kohsuke.stapler.interceptor.RequirePOST;
 
 public class BuildWithParametersAction<T extends Job<?, ?> & ParameterizedJob> implements Action {
     private static final String URL_NAME = "parambuild";
-    private final static Logger LOG = Logger.getLogger(BuildWithParametersAction.class.getName());
 
     private final T project;
 
@@ -59,7 +52,7 @@ public class BuildWithParametersAction<T extends Job<?, ?> & ParameterizedJob> i
         List<BuildParameter> buildParameters = new ArrayList<>();
 
         for (ParameterDefinition parameterDefinition : getParameterDefinitions()) {
-            BuildParameter buildParameter = new BuildParameter(parameterDefinition.getName(), parameterDefinition.getDescription());
+            BuildParameter buildParameter = new BuildParameter(parameterDefinition);
             if (parameterDefinition.getClass().isAssignableFrom(PasswordParameterDefinition.class)) {
                 buildParameter.setType(BuildParameterType.PASSWORD);
             } else if (parameterDefinition.getClass().isAssignableFrom(BooleanParameterDefinition.class)) {
@@ -71,19 +64,12 @@ public class BuildWithParametersAction<T extends Job<?, ?> & ParameterizedJob> i
                 buildParameter.setType(BuildParameterType.STRING);
             } else if (parameterDefinition.getClass().isAssignableFrom(TextParameterDefinition.class)) {
                 buildParameter.setType(BuildParameterType.TEXT);
-            } else if (parameterDefinition.getClass().isAssignableFrom(FileParameterDefinition.class)) {
-                buildParameter.setType(BuildParameterType.FILE);
             } else {
-                // default to string
-                buildParameter.setType(BuildParameterType.STRING);
+                buildParameter.setType(BuildParameterType.CUSTOM);
             }
 
             try {
-                // Don't call getParameterDefinitionValue for FILE type, it will cause NPE if no file is uploaded
-                if (buildParameter.getType() != BuildParameterType.FILE) {
-                    ParameterValue parameterValue = getParameterDefinitionValue(parameterDefinition);
-                    buildParameter.setValue(parameterValue);
-                }
+                buildParameter.setValue(getParameterDefinitionValue(parameterDefinition));
             } catch (IllegalArgumentException ignored) {
                 // If a value was provided that does not match available options, leave the value blank.
             }
@@ -124,62 +110,34 @@ public class BuildWithParametersAction<T extends Job<?, ?> & ParameterizedJob> i
 
         JSONObject formData = req.getSubmittedForm();
         if (!formData.isEmpty()) {
-            // LOG.info(formData.toString());
-
             for (ParameterDefinition parameterDefinition : getParameterDefinitions()) {
-                ParameterValue parameterValue = parameterDefinition.createValue(req);
-
-                if (parameterDefinition.getClass().isAssignableFrom(BooleanParameterDefinition.class)) {
-                    boolean value = (req.getParameter(parameterDefinition.getName()) != null);
-                    parameterValue = ((BooleanParameterDefinition) parameterDefinition).createValue(String.valueOf(value));
-                } else if (parameterDefinition.getClass().isAssignableFrom(PasswordParameterDefinition.class)) {
-                    parameterValue = applyDefaultPassword((PasswordParameterDefinition) parameterDefinition,
-                                                            (PasswordParameterValue) parameterValue);
-                } else if (parameterDefinition.getClass().isAssignableFrom(FileParameterDefinition.class)) {
-                    parameterValue = resolveFileParameter(req, formData, (FileParameterDefinition) parameterDefinition);
+                JSONObject parameterData = findParameterData(formData, parameterDefinition.getName());
+                if (parameterDefinition instanceof hudson.model.FileParameterDefinition
+                        && parameterData != null && !hasUploadedFile(req, parameterData)) {
+                    continue;
                 }
-
+                ParameterValue parameterValue = parameterData != null
+                        ? parameterDefinition.createValue(req, parameterData)
+                        : parameterDefinition.createValue(req);
+                if (parameterValue != null) {
+                    if (parameterValue.getClass().isAssignableFrom(BooleanParameterValue.class)) {
+                        boolean value = (req.getParameter(parameterDefinition.getName()) != null);
+                        parameterValue = ((BooleanParameterDefinition) parameterDefinition).createValue(String.valueOf(value));
+                    } else if (parameterValue.getClass().isAssignableFrom(PasswordParameterValue.class)) {
+                        parameterValue = applyDefaultPassword((PasswordParameterDefinition) parameterDefinition,
+                                                                (PasswordParameterValue) parameterValue);
+                    }
+                }
                 // This will throw an exception if the provided value is not a valid option for the parameter.
                 // This is the desired behavior, as we want to ensure valid submissions.
-                values.add(parameterValue);
+                if (parameterValue != null) {
+                    values.add(parameterValue);
+                }
             }
         }
 
         Jenkins.get().getQueue().schedule(project, 0, new ParametersAction(values), new CauseAction(new Cause.UserIdCause()));
         rsp.sendRedirect("../");
-    }
-
-    ParameterValue resolveFileParameter(StaplerRequest2 req,
-                                        JSONObject formData,
-                                        FileParameterDefinition def) throws ServletException, IOException {
-        if (req == null) {
-            return null;
-        }
-        
-        // Handle both JSONArray (multiple params) and JSONObject (single param)
-        Object paramObj = formData.get("parameter");
-        JSONArray jsonArray;
-        if (paramObj instanceof JSONArray) {
-            jsonArray = (JSONArray) paramObj;
-        } else if (paramObj instanceof JSONObject) {
-            jsonArray = new JSONArray();
-            jsonArray.add(paramObj);
-        } else {
-            jsonArray = new JSONArray();
-        }
-        
-        String parameterName = def.getName();
-        for (Object jsonArrayItem : jsonArray) {
-            JSONObject jsonObj = (JSONObject) jsonArrayItem;
-            if (jsonObj.has("name") && jsonObj.getString("name").equals(parameterName)) {
-                String fileName = jsonObj.getString("");
-                FileItem fileItem = req.getFileItem(fileName);
-                FileParameterValue fileParameterValue = new FileParameterValue(parameterName, fileItem);
-                fileParameterValue.setDescription(def.getDescription());
-                return fileParameterValue;
-            }
-        }
-        return null;
     }
 
     ParameterValue applyDefaultPassword(PasswordParameterDefinition parameterDefinition,
@@ -209,6 +167,34 @@ public class BuildWithParametersAction<T extends Job<?, ?> & ParameterizedJob> i
             return property.getParameterDefinitions();
         }
         return new ArrayList<>();
+    }
+
+    private boolean hasUploadedFile(StaplerRequest2 req, JSONObject parameterData)
+            throws ServletException, IOException {
+        String token = parameterData.optString("file");
+        if (token.isEmpty()) {
+            return false;
+        }
+        // Browsers submit an empty filename when no file was selected. File size
+        // cannot distinguish that case from a deliberately uploaded empty file.
+        var file = req.getFileItem2(token);
+        return file != null && file.getName() != null && !file.getName().isEmpty();
+    }
+
+    private JSONObject findParameterData(JSONObject formData, String parameterName) {
+        Object parameters = formData.opt("parameter");
+        if (parameters instanceof JSONObject parameterData) {
+            return parameterName.equals(parameterData.optString("name")) ? parameterData : null;
+        }
+        if (parameters instanceof JSONArray parameterArray) {
+            for (Object parameter : parameterArray) {
+                if (parameter instanceof JSONObject parameterData
+                        && parameterName.equals(parameterData.optString("name"))) {
+                    return parameterData;
+                }
+            }
+        }
+        return null;
     }
 
 }

@@ -12,7 +12,11 @@ An example triggering of a job with the plugin:
 
 
 ## Build
-Running `mvn hpi:run` will get you hpi plugin file in "./target" directory
+
+Run `mvn test` to execute the tests, or `mvn package` to build the plugin HPI in `target/`.
+Run `mvn hpi:run` to start a development Jenkins with the plugin installed.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow.
 
 ## Changelog
 
@@ -29,8 +33,8 @@ The latest releases are documented in the [GitHub releases page](https://github.
 
 ### 1.5.1 - Mar 26, 2021
 
-- Fix XXS vulnerability as reported in [security advisory](https://www.jenkins.io/security/advisory/2021-03-30/#SECURITY-2231).
-- Fix CRSF vulnerability as reported in [security advisory](https://www.jenkins.io/security/advisory/2021-03-30/#SECURITY-2257).
+- Fix XSS vulnerability as reported in [security advisory](https://www.jenkins.io/security/advisory/2021-03-30/#SECURITY-2231).
+- Fix CSRF vulnerability as reported in [security advisory](https://www.jenkins.io/security/advisory/2021-03-30/#SECURITY-2257).
 
 ### 1.5 - Oct 4, 2020
 
