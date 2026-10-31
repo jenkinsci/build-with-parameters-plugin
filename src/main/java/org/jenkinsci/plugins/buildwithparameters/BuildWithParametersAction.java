@@ -112,7 +112,12 @@ public class BuildWithParametersAction<T extends Job<?, ?> & ParameterizedJob> i
         if (!formData.isEmpty()) {
             for (ParameterDefinition parameterDefinition : getParameterDefinitions()) {
                 JSONObject parameterData = findParameterData(formData, parameterDefinition.getName());
-                ParameterValue parameterValue = parameterData != null
+                // File parameter forms include a file token even when no file was selected.
+                // Keep Jenkins' request-based handling for that case, which omits the value.
+                boolean missingFileValue = parameterDefinition instanceof hudson.model.FileParameterDefinition
+                        && parameterData != null
+                        && !parameterData.has("value");
+                ParameterValue parameterValue = parameterData != null && !missingFileValue
                         ? parameterDefinition.createValue(req, parameterData)
                         : parameterDefinition.createValue(req);
                 if (parameterValue != null) {
@@ -166,14 +171,16 @@ public class BuildWithParametersAction<T extends Job<?, ?> & ParameterizedJob> i
     }
 
     private JSONObject findParameterData(JSONObject formData, String parameterName) {
-        JSONArray parameters = formData.optJSONArray("parameter");
-        if (parameters == null) {
-            return null;
+        Object parameters = formData.opt("parameter");
+        if (parameters instanceof JSONObject parameterData) {
+            return parameterName.equals(parameterData.optString("name")) ? parameterData : null;
         }
-        for (Object parameter : parameters) {
-            if (parameter instanceof JSONObject parameterData
-                    && parameterName.equals(parameterData.optString("name"))) {
-                return parameterData;
+        if (parameters instanceof JSONArray parameterArray) {
+            for (Object parameter : parameterArray) {
+                if (parameter instanceof JSONObject parameterData
+                        && parameterName.equals(parameterData.optString("name"))) {
+                    return parameterData;
+                }
             }
         }
         return null;

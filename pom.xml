@@ -91,6 +91,20 @@
             <type>jar</type>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.jenkins-ci.plugins</groupId>
+            <artifactId>validating-string-parameter</artifactId>
+            <version>251.vc34e592b_8a_4d</version>
+            <type>hpi</type>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jenkins-ci.plugins</groupId>
+            <artifactId>validating-string-parameter</artifactId>
+            <version>251.vc34e592b_8a_4d</version>
+            <type>jar</type>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <pluginRepositories>
