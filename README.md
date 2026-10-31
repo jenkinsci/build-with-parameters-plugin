@@ -24,6 +24,8 @@ The latest releases are documented in the [GitHub releases page](https://github.
 
 ### Unreleased
 
+- Add coverage for parameter handling and form security checks.
+
 - Fix file parameters so files selected on the confirmation form are passed to the build ([#36](https://github.com/jenkinsci/build-with-parameters-plugin/pull/36)).
 
 ### [104.v27a_355e16386](https://github.com/jenkinsci/build-with-parameters-plugin/releases/tag/104.v27a_355e16386) - Oct 31, 2026
