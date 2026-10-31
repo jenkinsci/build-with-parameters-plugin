@@ -22,6 +22,42 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow.
 
 The latest releases are documented in the [GitHub releases page](https://github.com/jenkinsci/build-with-parameters-plugin/releases).
 
+### Unreleased
+
+- Fix file parameters so files selected on the confirmation form are passed to the build ([#36](https://github.com/jenkinsci/build-with-parameters-plugin/pull/36)).
+
+### [104.v27a_355e16386](https://github.com/jenkinsci/build-with-parameters-plugin/releases/tag/104.v27a_355e16386) - Oct 31, 2026
+
+- Validate submissions containing a single custom parameter ([#83](https://github.com/jenkinsci/build-with-parameters-plugin/pull/83)).
+
+### [102.v3ed1fb_0d722a_](https://github.com/jenkinsci/build-with-parameters-plugin/releases/tag/102.v3ed1fb_0d722a_) - Oct 30, 2026
+
+- Support custom parameter types on the confirmation form ([#82](https://github.com/jenkinsci/build-with-parameters-plugin/pull/82)).
+
+### [100.v810a_32c51b_10](https://github.com/jenkinsci/build-with-parameters-plugin/releases/tag/100.v810a_32c51b_10) - Oct 24, 2026
+
+- Honor the configured markup formatter for parameter descriptions ([#81](https://github.com/jenkinsci/build-with-parameters-plugin/pull/81)).
+- Add contributor and architecture documentation ([#80](https://github.com/jenkinsci/build-with-parameters-plugin/pull/80)).
+
+### [94.v4867eeb_b_fdfa_](https://github.com/jenkinsci/build-with-parameters-plugin/releases/tag/94.v4867eeb_b_fdfa_) - Oct 23, 2026
+
+- Skip null parameter values when scheduling builds ([#79](https://github.com/jenkinsci/build-with-parameters-plugin/pull/79)).
+- Enable Jenkins Security Scan, migrate tests to JUnit Jupiter, and update build dependencies.
+
+### [81.ve4a_9c2499d9a](https://github.com/jenkinsci/build-with-parameters-plugin/releases/tag/81.ve4a_9c2499d9a) - Nov 16, 2025
+
+- Migrate from EE 8 to EE 9 and update the Jenkins baseline to 2.440.3.
+- Update test dependencies, parallelize tests, and test with Java 25.
+
+### [76.v9382db_f78962](https://github.com/jenkinsci/build-with-parameters-plugin/releases/tag/76.v9382db_f78962) - Dec 1, 2022
+
+- Fix parameter evaluation order ([#23](https://github.com/jenkinsci/build-with-parameters-plugin/pull/23)).
+- Update the Jenkins LTS version and modernize the code.
+
+### [73.v3ed13cb_d6cca](https://github.com/jenkinsci/build-with-parameters-plugin/releases/tag/73.v3ed13cb_d6cca) - Nov 27, 2022
+
+- Replace JSR 305 annotations and enable continuous delivery and incremental versioning.
+
 ### 1.7 - Mar 5, 2022
 
 - Update to support icons removal from Jenkins Core
