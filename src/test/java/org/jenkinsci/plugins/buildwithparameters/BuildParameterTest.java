@@ -29,6 +29,17 @@ class BuildParameterTest {
     }
 
     @Test
+    void keepsTextAndChoiceValues() {
+        BuildParameter parameter = new BuildParameter("message", "description", "formatted");
+        parameter.setValue(new hudson.model.TextParameterValue("message", "line one\nline two"));
+        assertEquals("line one\nline two", parameter.getValue());
+        assertEquals("description", parameter.getDescription());
+        assertEquals("formatted", parameter.getFormattedDescription());
+        parameter.setChoices(java.util.List.of("first", "second"));
+        assertEquals(java.util.List.of("first", "second"), parameter.getChoices());
+    }
+
+    @Test
     void isDefaultPasswordPlaceholder() {
         String expected = BuildParameter.JOB_DEFAULT_PASSWORD_PLACEHOLDER;
         assertFalse(BuildParameter.isDefaultPasswordPlaceholder(null));

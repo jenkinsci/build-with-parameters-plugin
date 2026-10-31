@@ -209,6 +209,151 @@ class BuildWithParametersActionTest {
     }
 
     @Test
+    void rendersAndSubmitsChoiceTextAndCheckedBoolean() throws Exception {
+        FreeStyleProject project = j.createFreeStyleProject();
+        project.addProperty(new ParametersDefinitionProperty(
+                new hudson.model.ChoiceParameterDefinition("choice", new String[] {"one", "two"}, ""),
+                new hudson.model.TextParameterDefinition("text", "default", ""),
+                new hudson.model.BooleanParameterDefinition("enabled", false, "")));
+        try (WebClient wc = j.createWebClient()) {
+            HtmlPage page = wc.getPage(project, "parambuild?choice=two&text=initial");
+            HtmlForm form = page.getFormByName("config");
+            HtmlSelect choice = form.getSelectByName("choice");
+            assertEquals("two", choice.getSelectedOptions().get(0).getValueAttribute());
+            ((org.htmlunit.html.HtmlTextArea) page.getByXPath("//textarea[@name='text']").get(0)).setText("first\nsecond");
+            ((org.htmlunit.html.HtmlCheckBoxInput) form.getInputByName("enabled")).setChecked(true);
+            DomElement submit = page.createElement("button");
+            submit.setAttribute("type", "submit");
+            form.appendChild(submit);
+            submit.click();
+        }
+        j.waitUntilNoActivity();
+        assertNotNull(project.getLastBuild());
+        ParametersAction parameters = project.getLastBuild().getAction(ParametersAction.class);
+        assertEquals("two", ((StringParameterValue) parameters.getParameter("choice")).value);
+        assertEquals("first\nsecond", ((hudson.model.TextParameterValue) parameters.getParameter("text")).getValue().replace("\r\n", "\n"));
+        assertTrue(((hudson.model.BooleanParameterValue) parameters.getParameter("enabled")).value);
+    }
+
+    @Test
+    void submittingPasswordPlaceholderUsesJobDefault() throws Exception {
+        FreeStyleProject project = j.createFreeStyleProject();
+        project.addProperty(new ParametersDefinitionProperty(
+                new PasswordParameterDefinition("secret", "default-secret", "")));
+        try (WebClient wc = j.createWebClient()) {
+            HtmlPage page = wc.getPage(project, "parambuild");
+            HtmlForm form = page.getFormByName("config");
+            form.getInputByName("secret").setValue(BuildParameter.JOB_DEFAULT_PASSWORD_PLACEHOLDER);
+            DomElement submit = page.createElement("button");
+            submit.setAttribute("type", "submit");
+            form.appendChild(submit);
+            submit.click();
+        }
+        j.waitUntilNoActivity();
+        assertNotNull(project.getLastBuild());
+        PasswordParameterValue value = (PasswordParameterValue)
+                project.getLastBuild().getAction(ParametersAction.class).getParameter("secret");
+        assertEquals("default-secret", BuildWithParametersAction.getPasswordValue(value));
+    }
+
+    @Test
+    void invalidChoiceInUrlDoesNotPreventConfirmationForm() throws Exception {
+        FreeStyleProject project = j.createFreeStyleProject();
+        project.addProperty(new ParametersDefinitionProperty(
+                new hudson.model.ChoiceParameterDefinition("choice", new String[] {"one", "two"}, "")));
+        try (WebClient wc = j.createWebClient()) {
+            HtmlPage page = wc.getPage(project, "parambuild?choice=invalid");
+            assertEquals(2, page.getFormByName("config").getSelectByName("choice").getOptions().size());
+        }
+        assertNull(project.getLastBuild());
+    }
+
+    @Test
+    void rejectsAccessWithoutBuildPermission() throws Exception {
+        j.jenkins.setSecurityRealm(j.createDummySecurityRealm());
+        j.jenkins.setAuthorizationStrategy(new org.jvnet.hudson.test.MockAuthorizationStrategy()
+                .grant(jenkins.model.Jenkins.READ, hudson.model.Item.READ).everywhere().to("reader"));
+        FreeStyleProject project = j.createFreeStyleProject();
+        project.addProperty(new ParametersDefinitionProperty(new StringParameterDefinition("message", "default")));
+        try (WebClient wc = j.createWebClient().login("reader")) {
+            wc.getOptions().setThrowExceptionOnFailingStatusCode(false);
+            wc.getOptions().setPrintContentOnFailingStatusCode(false);
+            int getStatus = wc.getPage(project, "parambuild").getWebResponse().getStatusCode();
+            assertTrue(getStatus == 403 || getStatus == 404, "Unexpected status: " + getStatus);
+            org.htmlunit.WebRequest request = new org.htmlunit.WebRequest(
+                    new java.net.URL(j.getURL(), project.getUrl() + "parambuild/configSubmit"),
+                    org.htmlunit.HttpMethod.POST);
+            wc.addCrumb(request);
+            int postStatus = wc.getPage(request).getWebResponse().getStatusCode();
+            assertTrue(postStatus == 403 || postStatus == 404, "Unexpected status: " + postStatus);
+        }
+        assertNull(project.getLastBuild());
+        assertNull(j.jenkins.getQueue().getItem(project));
+    }
+
+    @Test
+    void rejectsSubmissionWithoutCrumbAndGetSubmission() throws Exception {
+        j.jenkins.setCrumbIssuer(new hudson.security.csrf.DefaultCrumbIssuer(false));
+        FreeStyleProject project = j.createFreeStyleProject();
+        project.addProperty(new ParametersDefinitionProperty(new StringParameterDefinition("message", "default")));
+        try (WebClient wc = j.createWebClient()) {
+            wc.getOptions().setThrowExceptionOnFailingStatusCode(false);
+            wc.getOptions().setPrintContentOnFailingStatusCode(false);
+            java.net.URL target = new java.net.URL(j.getURL(), project.getUrl() + "parambuild/configSubmit");
+            assertEquals(403, wc.getPage(new org.htmlunit.WebRequest(target, org.htmlunit.HttpMethod.POST))
+                    .getWebResponse().getStatusCode());
+            assertEquals(405, wc.getPage(target).getWebResponse().getStatusCode());
+        }
+        assertNull(project.getLastBuild());
+        assertNull(j.jenkins.getQueue().getItem(project));
+    }
+
+    @Test
+    void unparameterizedJobHasNoParameters() throws Exception {
+        FreeStyleProject project = j.createFreeStyleProject();
+        assertTrue(new BuildWithParametersAction<>(project).getAvailableParameters().isEmpty());
+    }
+
+    @Test
+    void passwordPlaceholderWithoutDefaultUsesEmptyValue() throws Exception {
+        PasswordParameterDefinition definition = new PasswordParameterDefinition("secret", (String) null, "");
+        BuildWithParametersAction<?> action = testableProject(definition);
+        PasswordParameterValue result = (PasswordParameterValue) action.applyDefaultPassword(definition,
+                new PasswordParameterValue("secret", BuildParameter.JOB_DEFAULT_PASSWORD_PLACEHOLDER));
+        assertEquals("", BuildWithParametersAction.getPasswordValue(result));
+    }
+
+    @Test
+    void skipsFileParameterWithMissingFileToken() throws Exception {
+        FreeStyleProject project = j.createFreeStyleProject();
+        project.addProperty(new ParametersDefinitionProperty(new FileParameterDefinition("file")));
+        try (WebClient wc = j.createWebClient()) {
+            HtmlPage page = wc.getPage(project, "parambuild");
+            DomElement file = (DomElement) page.getByXPath("//input[@type='file']").get(0);
+            file.remove();
+            HtmlForm form = page.getFormByName("config");
+            DomElement submit = page.createElement("button");
+            submit.setAttribute("type", "submit");
+            form.appendChild(submit);
+            submit.click();
+        }
+        j.waitUntilNoActivity();
+        assertNotNull(project.getLastBuild());
+        assertNull(project.getLastBuild().getAction(ParametersAction.class).getParameter("file"));
+    }
+
+    @Test
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    void actionFactoryIgnoresNonParameterizedJob() throws Exception {
+        hudson.model.Job job = new hudson.model.Job(j.jenkins, "non-parameterized") {
+            @Override public boolean isBuildable() { return false; }
+            @Override protected java.util.SortedMap _getRuns() { return new java.util.TreeMap(); }
+            @Override protected void removeRun(hudson.model.Run run) { }
+        };
+        assertTrue(new ParamBuilderActionFactory().createFor(job).isEmpty());
+    }
+
+    @Test
     void getAvailableParameters_passwordParam() throws IOException {
         ParameterDefinition pwParamDef = new PasswordParameterDefinition("n", BuildParameter.JOB_DEFAULT_PASSWORD_PLACEHOLDER, "d");
         BuildWithParametersAction bwpa = testableProject(pwParamDef);
