@@ -112,12 +112,11 @@ public class BuildWithParametersAction<T extends Job<?, ?> & ParameterizedJob> i
         if (!formData.isEmpty()) {
             for (ParameterDefinition parameterDefinition : getParameterDefinitions()) {
                 JSONObject parameterData = findParameterData(formData, parameterDefinition.getName());
-                // File parameter forms include a file token even when no file was selected.
-                // Keep Jenkins' request-based handling for that case, which omits the value.
-                boolean missingFileValue = parameterDefinition instanceof hudson.model.FileParameterDefinition
-                        && parameterData != null
-                        && !parameterData.has("value");
-                ParameterValue parameterValue = parameterData != null && !missingFileValue
+                if (parameterDefinition instanceof hudson.model.FileParameterDefinition
+                        && parameterData != null && !hasUploadedFile(req, parameterData)) {
+                    continue;
+                }
+                ParameterValue parameterValue = parameterData != null
                         ? parameterDefinition.createValue(req, parameterData)
                         : parameterDefinition.createValue(req);
                 if (parameterValue != null) {
@@ -168,6 +167,18 @@ public class BuildWithParametersAction<T extends Job<?, ?> & ParameterizedJob> i
             return property.getParameterDefinitions();
         }
         return new ArrayList<>();
+    }
+
+    private boolean hasUploadedFile(StaplerRequest2 req, JSONObject parameterData)
+            throws ServletException, IOException {
+        String token = parameterData.optString("file");
+        if (token.isEmpty()) {
+            return false;
+        }
+        // Browsers submit an empty filename when no file was selected. File size
+        // cannot distinguish that case from a deliberately uploaded empty file.
+        var file = req.getFileItem2(token);
+        return file != null && file.getName() != null && !file.getName().isEmpty();
     }
 
     private JSONObject findParameterData(JSONObject formData, String parameterName) {

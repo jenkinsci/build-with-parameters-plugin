@@ -56,6 +56,159 @@ class BuildWithParametersActionTest {
     }
 
     @Test
+    void uploadsSingleFileParameter() throws Exception {
+        verifyFileUpload(false, "uploaded content");
+    }
+
+    @Test
+    void uploadsFileAlongsideOtherParameters() throws Exception {
+        verifyFileUpload(true, "uploaded content");
+    }
+
+    @Test
+    void uploadsSelectedEmptyFile() throws Exception {
+        verifyFileUpload(false, "");
+    }
+
+    @Test
+    void uploadsTwoFilesToTheirOwnWorkspacePaths() throws Exception {
+        verifyMultipleFileUploads(true, true, false);
+    }
+
+    @Test
+    void omitsUnselectedFileWhileUploadingAnother() throws Exception {
+        verifyMultipleFileUploads(false, true, false);
+    }
+
+    @Test
+    void preservesOtherParametersWhenNoFileIsSelected() throws Exception {
+        verifyMultipleFileUploads(false, false, true);
+    }
+
+    private void verifyMultipleFileUploads(boolean selectFirst, boolean selectSecond, boolean otherParameters)
+            throws Exception {
+        FreeStyleProject project = j.createFreeStyleProject();
+        List<ParameterDefinition> definitions = new ArrayList<>();
+        definitions.add(new FileParameterDefinition("first.txt"));
+        definitions.add(new FileParameterDefinition("second.txt"));
+        if (otherParameters) {
+            definitions.add(new StringParameterDefinition("message", "default"));
+            definitions.add(new hudson.model.BooleanParameterDefinition("enabled", true, ""));
+        }
+        project.addProperty(new ParametersDefinitionProperty(definitions));
+        java.nio.file.Path first = java.nio.file.Files.createTempFile("first-upload-", ".txt");
+        java.nio.file.Path second = java.nio.file.Files.createTempFile("second-upload-", ".txt");
+        try (WebClient wc = j.createWebClient()) {
+            java.nio.file.Files.writeString(first, "first file contents");
+            java.nio.file.Files.writeString(second, "different second file contents");
+            HtmlPage page = wc.getPage(project, "parambuild");
+            assertNull(project.getLastBuild());
+            assertNull(j.jenkins.getQueue().getItem(project));
+            assertEquals(2, page.getByXPath("//input[@type='file']").size());
+            if (selectFirst) {
+                ((org.htmlunit.html.HtmlFileInput) page.getByXPath(
+                        "//div[@name='parameter'][input[@name='name' and @value='first.txt']]//input[@type='file']")
+                        .get(0)).setValue(first.toString());
+            }
+            if (selectSecond) {
+                ((org.htmlunit.html.HtmlFileInput) page.getByXPath(
+                        "//div[@name='parameter'][input[@name='name' and @value='second.txt']]//input[@type='file']")
+                        .get(0)).setValue(second.toString());
+            }
+            HtmlForm form = page.getFormByName("config");
+            if (otherParameters) {
+                form.getInputByName("message").setValue("edited without a file");
+                ((org.htmlunit.html.HtmlCheckBoxInput) form.getInputByName("enabled")).setChecked(false);
+            }
+            DomElement submit = page.createElement("button");
+            submit.setAttribute("type", "submit");
+            form.appendChild(submit);
+            submit.click();
+            for (int i = 0; project.getLastBuild() == null && i < 50; i++) {
+                Thread.sleep(100);
+            }
+            j.waitUntilNoActivity();
+            assertNotNull(project.getLastBuild());
+            j.assertBuildStatusSuccess(project.getLastBuild());
+            ParametersAction parameters = project.getLastBuild().getAction(ParametersAction.class);
+            assertEquals((selectFirst ? 1 : 0) + (selectSecond ? 1 : 0) + (otherParameters ? 2 : 0),
+                    parameters.getParameters().size());
+            for (int index = 0; index < 2; index++) {
+                String name = index == 0 ? "first.txt" : "second.txt";
+                boolean selected = index == 0 ? selectFirst : selectSecond;
+                if (selected) {
+                    hudson.model.FileParameterValue value =
+                            (hudson.model.FileParameterValue) parameters.getParameter(name);
+                    assertNotNull(value);
+                    assertEquals((index == 0 ? first : second).getFileName().toString(), value.getOriginalFileName());
+                    assertEquals(index == 0 ? "first file contents" : "different second file contents",
+                            project.getLastBuild().getWorkspace().child(name).readToString());
+                } else {
+                    assertNull(parameters.getParameter(name));
+                    assertFalse(project.getLastBuild().getWorkspace().child(name).exists());
+                }
+            }
+            if (otherParameters) {
+                assertEquals("edited without a file", ((StringParameterValue) parameters.getParameter("message")).value);
+                assertFalse(((hudson.model.BooleanParameterValue) parameters.getParameter("enabled")).value);
+            }
+        } finally {
+            java.nio.file.Files.deleteIfExists(first);
+            java.nio.file.Files.deleteIfExists(second);
+        }
+    }
+
+    private void verifyFileUpload(boolean mixed, String contents) throws Exception {
+        FreeStyleProject project = j.createFreeStyleProject();
+        List<ParameterDefinition> definitions = new ArrayList<>();
+        definitions.add(new FileParameterDefinition("upload.txt", "Upload description"));
+        if (mixed) {
+            definitions.add(new StringParameterDefinition("message", "default"));
+            definitions.add(new hudson.model.BooleanParameterDefinition("enabled", true, ""));
+        }
+        project.addProperty(new ParametersDefinitionProperty(definitions));
+        java.nio.file.Path upload = java.nio.file.Files.createTempFile("parameter-upload-", ".txt");
+        try (WebClient wc = j.createWebClient()) {
+            java.nio.file.Files.writeString(upload, contents);
+            HtmlPage page = wc.getPage(project, "parambuild?message=from-url");
+            assertNull(project.getLastBuild());
+            assertNull(j.jenkins.getQueue().getItem(project));
+            assertEquals(1, page.getByXPath("//input[@type='file']").size());
+            org.htmlunit.html.HtmlFileInput input =
+                    (org.htmlunit.html.HtmlFileInput) page.getByXPath("//input[@type='file']").get(0);
+            input.setValue(upload.toString());
+            HtmlForm form = page.getFormByName("config");
+            if (mixed) {
+                form.getInputByName("message").setValue("edited");
+                ((org.htmlunit.html.HtmlCheckBoxInput) form.getInputByName("enabled")).setChecked(false);
+            }
+            DomElement submit = page.createElement("button");
+            submit.setAttribute("type", "submit");
+            form.appendChild(submit);
+            submit.click();
+            for (int i = 0; project.getLastBuild() == null && i < 50; i++) {
+                Thread.sleep(100);
+            }
+            j.waitUntilNoActivity();
+            assertNotNull(project.getLastBuild());
+            j.assertBuildStatusSuccess(project.getLastBuild());
+            ParametersAction parameters = project.getLastBuild().getAction(ParametersAction.class);
+            hudson.model.FileParameterValue value =
+                    (hudson.model.FileParameterValue) parameters.getParameter("upload.txt");
+            assertNotNull(value);
+            assertEquals("Upload description", value.getDescription());
+            assertEquals(upload.getFileName().toString(), value.getOriginalFileName());
+            assertEquals(contents, project.getLastBuild().getWorkspace().child("upload.txt").readToString());
+            if (mixed) {
+                assertEquals("edited", ((StringParameterValue) parameters.getParameter("message")).value);
+                assertFalse(((hudson.model.BooleanParameterValue) parameters.getParameter("enabled")).value);
+            }
+        } finally {
+            java.nio.file.Files.deleteIfExists(upload);
+        }
+    }
+
+    @Test
     void getAvailableParameters_passwordParam() throws IOException {
         ParameterDefinition pwParamDef = new PasswordParameterDefinition("n", BuildParameter.JOB_DEFAULT_PASSWORD_PLACEHOLDER, "d");
         BuildWithParametersAction bwpa = testableProject(pwParamDef);
