@@ -46,6 +46,8 @@ The latest releases are documented in the [GitHub releases page](https://github.
 
 - Add an `allowBlankStrings` URL option to reject blank string values on `/parambuild` submissions ([#63](https://github.com/jenkinsci/build-with-parameters-plugin/issues/63)).
 
+- Add regression coverage for custom parameter rendering, including Parameter Separator ([#65](https://github.com/jenkinsci/build-with-parameters-plugin/issues/65)).
+
 - Document Jenkins' built-in option for trimming string parameters ([#61](https://github.com/jenkinsci/build-with-parameters-plugin/issues/61)).
 
 - Add coverage for parameter handling and form security checks.
