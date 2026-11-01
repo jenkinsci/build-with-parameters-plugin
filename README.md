@@ -20,6 +20,16 @@ string(name: 'MY_PARAM', defaultValue: '', trim: true)
 
 The setting applies when the parameter value is created, including when submitting the `/parambuild` form. Parameters without trimming enabled retain their whitespace.
 
+## Requiring nonblank strings
+
+By default, `/parambuild` allows blank string parameter values. Add `allowBlankStrings=false` to the URL to reject string or text parameters whose submitted value (or configured default when no value is submitted) is empty or whitespace-only before scheduling the build. The setting applies to all string and text parameters on that submission; other parameter types are unchanged.
+
+For example:
+
+```text
+/job/my-job/parambuild?BRANCH=main&allowBlankStrings=false
+```
+
 
 ## Build
 
@@ -33,6 +43,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow.
 The latest releases are documented in the [GitHub releases page](https://github.com/jenkinsci/build-with-parameters-plugin/releases).
 
 ### Unreleased
+
+- Add an `allowBlankStrings` URL option to reject blank string values on `/parambuild` submissions ([#63](https://github.com/jenkinsci/build-with-parameters-plugin/issues/63)).
 
 - Document Jenkins' built-in option for trimming string parameters ([#61](https://github.com/jenkinsci/build-with-parameters-plugin/issues/61)).
 

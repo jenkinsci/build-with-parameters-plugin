@@ -14,5 +14,6 @@ The plugin provides `/job/JOB_NAME/parambuild` for parameterized Jenkins jobs. A
 - Both the action URL and submission check `BUILD` permission. Submission is guarded by `@RequirePOST`.
 - When `createValue` returns a `PasswordParameterValue`, the form model substitutes `job_default_password` for the secret. On submission, that exact placeholder restores the job's configured default, or an empty string if there is no default.
 - Parameter validation belongs to each Jenkins `ParameterDefinition`. Invalid submitted choices should fail rather than silently reach the queue.
+- `/parambuild?allowBlankStrings=false` rejects empty and whitespace-only string or text parameter values before queue scheduling. An omitted submission value is checked after Jenkins applies the parameter's configured default. The option is carried through the confirmation form; when omitted, blank strings remain allowed.
 
 `BuildWithParametersActionTest` exercises form submission with the Jenkins test harness. `BuildParameterTest` covers the password placeholder model behavior.

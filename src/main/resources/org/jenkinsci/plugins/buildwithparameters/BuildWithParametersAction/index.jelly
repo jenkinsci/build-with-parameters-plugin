@@ -8,7 +8,7 @@
         </l:side-panel>
         <l:main-panel>
             <h2>Trigger ${it.projectName}</h2>
-            <f:form method="post" action="configSubmit" name="config">
+            <f:form method="post" action="${it.configSubmitUrl}" name="config">
                 <j:forEach var="parameter" items="${it.availableParameters}">
                     <j:choose>
                         <j:when test="${parameter.type == 'CUSTOM'}">
