@@ -144,10 +144,12 @@ public class BuildWithParametersAction<T extends Job<?, ?> & ParameterizedJob> i
                                                             (PasswordParameterValue) parameterValue);
                 }
             }
-            if (!allowBlankStrings && isStringDefinition && parameterValue instanceof StringParameterValue stringValue
-                    && (stringValue.getValue() == null || stringValue.getValue().isBlank())) {
-                rsp.sendError(400, "String parameter '" + parameterDefinition.getName() + "' must not be blank");
-                return;
+            if (!allowBlankStrings && isStringDefinition && parameterValue instanceof StringParameterValue stringValue) {
+                String value = stringValue.getValue();
+                if (value == null || value.isBlank()) {
+                    rsp.sendError(400, "String parameter '" + parameterDefinition.getName() + "' must not be blank");
+                    return;
+                }
             }
             // This will throw an exception if the provided value is not a valid option for the parameter.
             // This is the desired behavior, as we want to ensure valid submissions.
