@@ -10,6 +10,16 @@ This is useful if you want to create a list of jobs with parameters to trigger a
 An example triggering of a job with the plugin:  
 ![](example_screenshot.png)
 
+## Trimming string parameters
+
+String parameters can be trimmed using Jenkins' built-in per-parameter `trim` option. Enable it in the string parameter's configuration, or set `trim: true` in a Pipeline parameter declaration:
+
+```groovy
+string(name: 'MY_PARAM', defaultValue: '', trim: true)
+```
+
+The setting applies when the parameter value is created, including when submitting the `/parambuild` form. Parameters without trimming enabled retain their whitespace.
+
 
 ## Build
 
@@ -23,6 +33,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow.
 The latest releases are documented in the [GitHub releases page](https://github.com/jenkinsci/build-with-parameters-plugin/releases).
 
 ### Unreleased
+
+- Document Jenkins' built-in option for trimming string parameters ([#61](https://github.com/jenkinsci/build-with-parameters-plugin/issues/61)).
 
 - Add coverage for parameter handling and form security checks.
 

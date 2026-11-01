@@ -20,6 +20,7 @@ This is a Jenkins plugin that shows a confirmation form at a job's `/parambuild`
 - Format commit messages as `<branch> - <commit type> - <commit message>`, using the current branch name and a type such as `feat`, `fix`, `docs`, `refactor`, `test`, or `chore`. Example: `master - docs - add contributor guidance`.
 - Update the changelog in `README.md` for every pull request, adding the change under `Unreleased` until it is published.
 - When creating a pull request for a bug fix, add the `bug` label.
+- Never close or reopen a GitHub issue without the user's explicit approval for that issue state change. Investigating an issue or recommending closure is not approval.
 - Before every push, ask for confirmation and wait for explicit approval, even if the original request includes pushing. Identify the remote and branch in the confirmation request.
 
 ## Verification
