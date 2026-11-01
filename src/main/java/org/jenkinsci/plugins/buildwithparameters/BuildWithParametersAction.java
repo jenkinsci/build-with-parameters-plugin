@@ -15,6 +15,7 @@ import hudson.model.ParametersDefinitionProperty;
 import hudson.model.PasswordParameterDefinition;
 import hudson.model.PasswordParameterValue;
 import hudson.model.StringParameterDefinition;
+import hudson.model.StringParameterValue;
 import hudson.model.TextParameterDefinition;
 import hudson.util.Secret;
 import java.io.IOException;
@@ -46,6 +47,15 @@ public class BuildWithParametersAction<T extends Job<?, ?> & ParameterizedJob> i
     //////////////////
     public String getProjectName() {
         return project.getName();
+    }
+
+    public boolean isAllowBlankStrings() {
+        String value = Stapler.getCurrentRequest2().getParameter("allowBlankStrings");
+        return value == null || !"false".equalsIgnoreCase(value);
+    }
+
+    public String getConfigSubmitUrl() {
+        return isAllowBlankStrings() ? "configSubmit" : "configSubmit?__bwAllowBlankStrings=false";
     }
 
     public List<BuildParameter> getAvailableParameters() {
@@ -109,30 +119,42 @@ public class BuildWithParametersAction<T extends Job<?, ?> & ParameterizedJob> i
         List<ParameterValue> values = new ArrayList<>();
 
         JSONObject formData = req.getSubmittedForm();
-        if (!formData.isEmpty()) {
-            for (ParameterDefinition parameterDefinition : getParameterDefinitions()) {
-                JSONObject parameterData = findParameterData(formData, parameterDefinition.getName());
-                if (parameterDefinition instanceof hudson.model.FileParameterDefinition
-                        && parameterData != null && !hasUploadedFile(req, parameterData)) {
-                    continue;
+        String allowBlankStringsValue = req.getParameter("__bwAllowBlankStrings");
+        boolean allowBlankStrings = allowBlankStringsValue == null || !"false".equalsIgnoreCase(allowBlankStringsValue);
+        for (ParameterDefinition parameterDefinition : getParameterDefinitions()) {
+            boolean isStringDefinition = parameterDefinition instanceof StringParameterDefinition
+                    || parameterDefinition instanceof TextParameterDefinition;
+            if (formData.isEmpty() && (allowBlankStrings || !isStringDefinition)) {
+                continue;
+            }
+            JSONObject parameterData = findParameterData(formData, parameterDefinition.getName());
+            if (parameterDefinition instanceof hudson.model.FileParameterDefinition
+                    && parameterData != null && !hasUploadedFile(req, parameterData)) {
+                continue;
+            }
+            ParameterValue parameterValue = parameterData != null
+                    ? parameterDefinition.createValue(req, parameterData)
+                    : parameterDefinition.createValue(req);
+            if (parameterValue != null) {
+                if (parameterValue.getClass().isAssignableFrom(BooleanParameterValue.class)) {
+                    boolean value = (req.getParameter(parameterDefinition.getName()) != null);
+                    parameterValue = ((BooleanParameterDefinition) parameterDefinition).createValue(String.valueOf(value));
+                } else if (parameterValue.getClass().isAssignableFrom(PasswordParameterValue.class)) {
+                    parameterValue = applyDefaultPassword((PasswordParameterDefinition) parameterDefinition,
+                                                            (PasswordParameterValue) parameterValue);
                 }
-                ParameterValue parameterValue = parameterData != null
-                        ? parameterDefinition.createValue(req, parameterData)
-                        : parameterDefinition.createValue(req);
-                if (parameterValue != null) {
-                    if (parameterValue.getClass().isAssignableFrom(BooleanParameterValue.class)) {
-                        boolean value = (req.getParameter(parameterDefinition.getName()) != null);
-                        parameterValue = ((BooleanParameterDefinition) parameterDefinition).createValue(String.valueOf(value));
-                    } else if (parameterValue.getClass().isAssignableFrom(PasswordParameterValue.class)) {
-                        parameterValue = applyDefaultPassword((PasswordParameterDefinition) parameterDefinition,
-                                                                (PasswordParameterValue) parameterValue);
-                    }
+            }
+            if (!allowBlankStrings && isStringDefinition && parameterValue instanceof StringParameterValue stringValue) {
+                String value = stringValue.getValue();
+                if (value == null || value.isBlank()) {
+                    rsp.sendError(400, "String parameter '" + parameterDefinition.getName() + "' must not be blank");
+                    return;
                 }
-                // This will throw an exception if the provided value is not a valid option for the parameter.
-                // This is the desired behavior, as we want to ensure valid submissions.
-                if (parameterValue != null) {
-                    values.add(parameterValue);
-                }
+            }
+            // This will throw an exception if the provided value is not a valid option for the parameter.
+            // This is the desired behavior, as we want to ensure valid submissions.
+            if (parameterValue != null) {
+                values.add(parameterValue);
             }
         }
 
