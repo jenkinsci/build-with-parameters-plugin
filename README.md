@@ -44,6 +44,8 @@ The latest releases are documented in the [GitHub releases page](https://github.
 
 ### Unreleased
 
+- Update the validating string parameter test dependency to the latest release compatible with the Jenkins baseline.
+
 - Add an `allowBlankStrings` URL option to reject blank string values on `/parambuild` submissions ([#63](https://github.com/jenkinsci/build-with-parameters-plugin/issues/63)).
 
 - Document Jenkins' built-in option for trimming string parameters ([#61](https://github.com/jenkinsci/build-with-parameters-plugin/issues/61)).

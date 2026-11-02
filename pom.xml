@@ -94,14 +94,14 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>validating-string-parameter</artifactId>
-            <version>345.v0f4330488a_f6</version>
+            <version>255.v31e2e6d0d273</version>
             <type>hpi</type>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>validating-string-parameter</artifactId>
-            <version>345.v0f4330488a_f6</version>
+            <version>255.v31e2e6d0d273</version>
             <type>jar</type>
             <scope>test</scope>
         </dependency>
