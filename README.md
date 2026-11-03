@@ -44,14 +44,15 @@ The latest releases are documented in the [GitHub releases page](https://github.
 
 ### Unreleased
 
-- Add an `allowBlankStrings` URL option to reject blank string values on `/parambuild` submissions ([#63](https://github.com/jenkinsci/build-with-parameters-plugin/issues/63)).
+### [124.v5669a_3d71b_e6](https://github.com/jenkinsci/build-with-parameters-plugin/releases/tag/124.v5669a_3d71b_e6) - Nov 1, 2026
 
 - Add regression coverage for custom parameter rendering, including Parameter Separator ([#65](https://github.com/jenkinsci/build-with-parameters-plugin/issues/65)).
 
+### [122.v181b_8124d036](https://github.com/jenkinsci/build-with-parameters-plugin/releases/tag/122.v181b_8124d036) - Nov 1, 2026
+
+- Add an `allowBlankStrings` URL option to reject blank string values on `/parambuild` submissions ([#63](https://github.com/jenkinsci/build-with-parameters-plugin/issues/63)).
 - Document Jenkins' built-in option for trimming string parameters ([#61](https://github.com/jenkinsci/build-with-parameters-plugin/issues/61)).
-
-- Add coverage for parameter handling and form security checks.
-
+- Add coverage for parameter handling and form security checks ([#84](https://github.com/jenkinsci/build-with-parameters-plugin/pull/84)).
 - Fix file parameters so files selected on the confirmation form are passed to the build ([#36](https://github.com/jenkinsci/build-with-parameters-plugin/pull/36)).
 
 ### [104.v27a_355e16386](https://github.com/jenkinsci/build-with-parameters-plugin/releases/tag/104.v27a_355e16386) - Oct 31, 2026
