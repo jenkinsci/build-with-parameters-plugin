@@ -77,6 +77,8 @@ public class BuildParameter {
             this.value = String.valueOf(((BooleanParameterValue) parameterValue).getValue());
         } else if (parameterValue instanceof PasswordParameterValue) {
             this.value = JOB_DEFAULT_PASSWORD_PLACEHOLDER;
+        } else if (parameterValue != null && parameterValue.getValue() instanceof String stringValue) {
+            this.value = stringValue;
         }
     }
 

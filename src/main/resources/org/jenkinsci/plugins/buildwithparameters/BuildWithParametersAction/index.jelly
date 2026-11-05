@@ -7,13 +7,16 @@
             </l:tasks>
         </l:side-panel>
         <l:main-panel>
+            <st:adjunct includes="org.jenkinsci.plugins.buildwithparameters.customParameterPrefill"/>
             <h2>Trigger ${it.projectName}</h2>
             <f:form method="post" action="${it.configSubmitUrl}" name="config">
                 <j:forEach var="parameter" items="${it.availableParameters}">
                     <j:choose>
                         <j:when test="${parameter.type == 'CUSTOM'}">
-                            <st:include it="${parameter.parameterDefinition}"
-                                        page="${parameter.parameterDefinition.descriptor.valuePage}"/>
+                            <div class="build-parameter-custom" data-prefill-value="${parameter.value}">
+                                <st:include it="${parameter.parameterDefinition}"
+                                            page="${parameter.parameterDefinition.descriptor.valuePage}"/>
+                            </div>
                         </j:when>
                         <j:otherwise>
                             <j:set var="escapeEntryTitleAndDescription" value="false"/>
