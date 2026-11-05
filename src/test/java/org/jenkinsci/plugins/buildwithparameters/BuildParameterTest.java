@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import hudson.model.ParameterValue;
 import hudson.model.PasswordParameterValue;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -37,6 +38,19 @@ class BuildParameterTest {
         assertEquals("formatted", parameter.getFormattedDescription());
         parameter.setChoices(java.util.List.of("first", "second"));
         assertEquals(java.util.List.of("first", "second"), parameter.getChoices());
+    }
+
+    @Test
+    void keepsStringValuesFromCustomParameterTypes() {
+        BuildParameter parameter = new BuildParameter("custom", "description");
+        parameter.setValue(new ParameterValue("custom") {
+            @Override
+            public Object getValue() {
+                return "selected";
+            }
+        });
+
+        assertEquals("selected", parameter.getValue());
     }
 
     @Test

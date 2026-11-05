@@ -553,6 +553,21 @@ class BuildWithParametersActionTest {
         assertNull(j.jenkins.getQueue().getItem(project));
     }
 
+    @Test
+    void rendersUrlValueForCustomParameterControl() throws Exception {
+        FreeStyleProject project = j.createFreeStyleProject();
+        project.addProperty(new ParametersDefinitionProperty(validatingIpParameter()));
+
+        try (WebClient wc = j.createWebClient()) {
+            HtmlPage page = wc.getPage(project, "parambuild?ip=10.10.10.10");
+            assertEquals(1, page.getByXPath(
+                    "//div[@class='build-parameter-custom' and @data-prefill-value='10.10.10.10']").size());
+        }
+
+        assertNull(project.getLastBuild());
+        assertNull(j.jenkins.getQueue().getItem(project));
+    }
+
     private ValidatingStringParameterDefinition validatingIpParameter() {
         return new ValidatingStringParameterDefinition(
                 "ip", "10.0.0.1", "\\d+\\.\\d+\\.\\d+\\.\\d+", "Invalid IP", "IPv4");
