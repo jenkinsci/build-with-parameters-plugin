@@ -7,6 +7,7 @@ import hudson.model.BuildableItem;
 import hudson.model.Cause;
 import hudson.model.CauseAction;
 import hudson.model.ChoiceParameterDefinition;
+import hudson.model.Failure;
 import hudson.model.Job;
 import hudson.model.ParameterDefinition;
 import hudson.model.ParameterValue;
@@ -78,10 +79,17 @@ public class BuildWithParametersAction<T extends Job<?, ?> & ParameterizedJob> i
                 buildParameter.setType(BuildParameterType.CUSTOM);
             }
 
+            ParameterValue parameterValue = null;
             try {
-                buildParameter.setValue(getParameterDefinitionValue(parameterDefinition));
-            } catch (IllegalArgumentException ignored) {
+                parameterValue = getParameterDefinitionValue(parameterDefinition);
+                buildParameter.setValue(parameterValue);
+            } catch (IllegalArgumentException | Failure ignored) {
                 // If a value was provided that does not match available options, leave the value blank.
+            }
+
+            if (buildParameter.getType() == BuildParameterType.CUSTOM && parameterValue != null
+                    && hasRequestValue(parameterDefinition)) {
+                prefillCustomParameter(buildParameter, parameterDefinition, parameterValue);
             }
 
             buildParameters.add(buildParameter);
@@ -92,6 +100,26 @@ public class BuildWithParametersAction<T extends Job<?, ?> & ParameterizedJob> i
 
     ParameterValue getParameterDefinitionValue(ParameterDefinition parameterDefinition) {
         return parameterDefinition.createValue(Stapler.getCurrentRequest2());
+    }
+
+    boolean hasRequestValue(ParameterDefinition parameterDefinition) {
+        StaplerRequest2 req = Stapler.getCurrentRequest2();
+        return req != null && req.getParameter(parameterDefinition.getName()) != null;
+    }
+
+    /**
+     * Custom controls render their definition's default value, so a value from the URL
+     * has to be carried in a copy of the definition. Definitions that cannot copy
+     * themselves fall back to the plain string control, as before custom rendering.
+     */
+    void prefillCustomParameter(BuildParameter buildParameter, ParameterDefinition parameterDefinition,
+            ParameterValue parameterValue) {
+        ParameterDefinition prefilled = parameterDefinition.copyWithDefaultValue(parameterValue);
+        if (prefilled != null && prefilled != parameterDefinition) {
+            buildParameter.setParameterDefinition(prefilled);
+        } else if (parameterValue instanceof StringParameterValue) {
+            buildParameter.setType(BuildParameterType.STRING);
+        }
     }
 
     public String getIconFileName() {

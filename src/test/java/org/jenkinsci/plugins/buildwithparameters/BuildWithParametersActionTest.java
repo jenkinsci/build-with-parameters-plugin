@@ -508,7 +508,7 @@ class BuildWithParametersActionTest {
         project.addProperty(new ParametersDefinitionProperty(validatingIpParameter()));
 
         try (WebClient wc = j.createWebClient()) {
-            HtmlPage page = wc.getPage(project, "parambuild?ip=10.10.10.10");
+            HtmlPage page = wc.getPage(project, "parambuild");
             HtmlInput input = (HtmlInput) page.getByXPath(
                     "//div[@name='parameter'][input[@name='name' and @value='ip']]//input[@name='value']").get(0);
             assertTrue(input.getAttribute("checkUrl").contains("validate"));
@@ -551,6 +551,90 @@ class BuildWithParametersActionTest {
 
         assertNull(project.getLastBuild());
         assertNull(j.jenkins.getQueue().getItem(project));
+    }
+
+    @Test
+    void prefillsValidatingStringParameterFromUrl() throws Exception {
+        FreeStyleProject project = j.createFreeStyleProject();
+        project.addProperty(new ParametersDefinitionProperty(validatingIpParameter()));
+
+        try (WebClient wc = j.createWebClient()) {
+            HtmlPage page = wc.getPage(project, "parambuild?ip=10.10.10.10");
+            HtmlInput input = (HtmlInput) page.getByXPath("//input[@name='ip']"
+                    + " | //div[@name='parameter'][input[@name='name' and @value='ip']]//input[@name='value']").get(0);
+            assertEquals("10.10.10.10", input.getValue());
+
+            HtmlForm form = page.getFormByName("config");
+            DomElement submit = page.createElement("button");
+            submit.setAttribute("type", "submit");
+            form.appendChild(submit);
+            submit.click();
+        }
+
+        for (int i = 0; project.getLastBuild() == null && i < 50; i++) {
+            Thread.sleep(100);
+        }
+        assertNotNull(project.getLastBuild());
+        ParametersAction parameters = project.getLastBuild().getAction(ParametersAction.class);
+        assertEquals("10.10.10.10", ((StringParameterValue) parameters.getParameter("ip")).value);
+    }
+
+    @Test
+    void invalidValidatingStringValueInUrlDoesNotPreventConfirmationForm() throws Exception {
+        FreeStyleProject project = j.createFreeStyleProject();
+        project.addProperty(new ParametersDefinitionProperty(validatingIpParameter()));
+
+        try (WebClient wc = j.createWebClient()) {
+            HtmlPage page = wc.getPage(project, "parambuild?ip=not-an-ip");
+            assertNotNull(page.getFormByName("config"));
+        }
+        assertNull(project.getLastBuild());
+    }
+
+    @Test
+    void customDefinitionWithoutCopyFallsBackToStringControl() throws IOException {
+        BuildWithParametersAction<FreeStyleProject> action =
+                urlValueAction(validatingIpParameter(), new StringParameterValue("ip", "10.10.10.10"));
+
+        BuildParameter parameter = action.getAvailableParameters().get(0);
+        assertSame(BuildParameterType.STRING, parameter.getType());
+        assertEquals("10.10.10.10", parameter.getValue());
+    }
+
+    @Test
+    void customDefinitionReceivesUrlValueThroughCopy() throws IOException {
+        CopyableStringParameterDefinition definition = new CopyableStringParameterDefinition("custom", "stored");
+        BuildWithParametersAction<FreeStyleProject> action =
+                urlValueAction(definition, new StringParameterValue("custom", "from-url"));
+
+        BuildParameter parameter = action.getAvailableParameters().get(0);
+        assertSame(BuildParameterType.CUSTOM, parameter.getType());
+        assertEquals("from-url", ((StringParameterDefinition) parameter.getParameterDefinition()).getDefaultValue());
+        assertEquals("stored", definition.getDefaultValue());
+    }
+
+    private BuildWithParametersAction<FreeStyleProject> urlValueAction(ParameterDefinition definition,
+            ParameterValue urlValue) throws IOException {
+        FreeStyleProject project = j.createFreeStyleProject();
+        project.addProperty(new ParametersDefinitionProperty(definition));
+        return new BuildWithParametersAction<FreeStyleProject>(project) {
+            @Override
+            ParameterValue getParameterDefinitionValue(ParameterDefinition parameterDefinition) {
+                return urlValue;
+            }
+
+            @Override
+            boolean hasRequestValue(ParameterDefinition parameterDefinition) {
+                return true;
+            }
+        };
+    }
+
+    /** Subclass, so the action treats it as a custom type; inherits copyWithDefaultValue. */
+    static class CopyableStringParameterDefinition extends StringParameterDefinition {
+        CopyableStringParameterDefinition(String name, String defaultValue) {
+            super(name, defaultValue);
+        }
     }
 
     private ValidatingStringParameterDefinition validatingIpParameter() {
