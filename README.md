@@ -44,6 +44,8 @@ The latest releases are documented in the [GitHub releases page](https://github.
 
 ### Unreleased
 
+- Fix URL values not being filled into custom parameter types such as Validating String Parameter since 102 ([#92](https://github.com/jenkinsci/build-with-parameters-plugin/issues/92)).
+
 ### [124.v5669a_3d71b_e6](https://github.com/jenkinsci/build-with-parameters-plugin/releases/tag/124.v5669a_3d71b_e6) - Nov 1, 2026
 
 - Add regression coverage for custom parameter rendering, including Parameter Separator ([#65](https://github.com/jenkinsci/build-with-parameters-plugin/issues/65)).

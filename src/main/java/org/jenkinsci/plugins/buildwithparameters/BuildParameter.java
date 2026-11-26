@@ -16,7 +16,7 @@ public class BuildParameter {
     private final String name;
     private final String description;
     private final String formattedDescription;
-    private final ParameterDefinition parameterDefinition;
+    private ParameterDefinition parameterDefinition;
     private String value;
     private List<String> choices = null;
 
@@ -62,6 +62,10 @@ public class BuildParameter {
 
     public ParameterDefinition getParameterDefinition() {
         return parameterDefinition;
+    }
+
+    void setParameterDefinition(ParameterDefinition parameterDefinition) {
+        this.parameterDefinition = parameterDefinition;
     }
 
     public String getValue() {
